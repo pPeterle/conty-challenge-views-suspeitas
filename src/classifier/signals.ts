@@ -204,8 +204,8 @@ function rhythmSignal(m: Measurements, fired: boolean): Signal {
   const levels = [r.dropEventLevel, r.peakEventLevel].filter((v): v is number => v !== null);
   const value = levels.length > 0 ? Math.min(...levels) : null;
   const rhythm =
-    `A audiência deste post tem ritmo claro: nas horas mais fracas do dia (a mais fraca é a ${r.weakestPhase}ª ` +
-    `hora de cada dia desde a publicação) ela tem ${fmtPct(r.nightToDay)} das views das horas fortes.`;
+    `A audiência deste post tem ritmo claro: nas horas mais fracas do dia (a mais fraca é a hora ` +
+    `${r.weakestPhase} de cada dia, contando da publicação) ela tem ${fmtPct(r.nightToDay)} das views das horas fortes.`;
   const detail = fired
     ? `${rhythm} O evento que levantou suspeita aconteceu em horas em que o público real costuma estar em ` +
       `${fmtPct(value ?? 0)} do nível do dia. Sozinho isso não acusa; junto com a queda ou o pico sem cauda, são ` +

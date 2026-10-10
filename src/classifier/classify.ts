@@ -62,12 +62,15 @@ export function classify(views: readonly number[], thr: FiringThresholds = CALIB
 
   let reason: string;
   switch (decision.rule) {
-    case "sinal_disparou":
-      reason = `Suspeito: padrão que merece revisão humana. ${signals
-        .filter((s) => s.fired)
-        .map((s) => s.detail)
-        .join(" ")}`;
+    case "sinal_disparou": {
+      // fora_do_ritmo só dispara junto com uma queda ou um pico de cauda curta; se o pico não disparou sozinho,
+      // a explicação dele entra no motivo para o leitor ver qual foi o evento.
+      const explained = signals.filter(
+        (s) => s.fired || (s.name === "pico_sem_cauda" && decision.fired.fora_do_ritmo && !decision.fired.queda_abrupta),
+      );
+      reason = `Suspeito: padrão que merece revisão humana. ${explained.map((s) => s.detail).join(" ")}`;
       break;
+    }
     case "queda_isolada":
       reason =
         `Inconclusivo: prefiro não acusar. ${signals[1].detail} Sozinha, uma queda assim também acontece quando ` +
