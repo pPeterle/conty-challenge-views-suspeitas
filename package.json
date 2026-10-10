@@ -1,0 +1,27 @@
+{
+  "name": "conty-challenge-views-suspeitas",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "test": "NODE_OPTIONS='--disable-warning=ExperimentalWarning' vitest run",
+    "typecheck": "tsc --noEmit",
+    "dataset": "tsx scripts/dataset.ts",
+    "evaluate": "tsx scripts/evaluate.ts",
+    "load": "bash scripts/load.sh"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.4",
+    "hono": "^4.13.13"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^3.2.7"
+  }
+}
