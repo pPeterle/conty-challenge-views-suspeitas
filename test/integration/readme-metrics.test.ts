@@ -12,6 +12,7 @@ import {
   readmeDivergences,
   replaceBlock,
 } from "../../src/evaluation/metrics.ts";
+import { SEED_PAIRS, STABILITY_BANDS, stability } from "../../src/evaluation/stability.ts";
 import storedCalibration from "../../src/classifier/thresholds.json" with { type: "json" };
 
 const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
@@ -19,24 +20,25 @@ const criterio = readFileSync(new URL("../../docs/criterio.md", import.meta.url)
 const { calibracao, avaliacao } = generatePartitions();
 const evaluation = evaluate(avaliacao);
 const calibration = evaluate(calibracao);
+const stab = stability();
 
 describe("taxa de falso positivo do README", () => {
   it("a taxa de falso positivo e o bloco de métricas do README são os medidos na partição de avaliação", () => {
     expect(parseReadmeFpr(readme), "README sem o marcador <!-- fpr -->").not.toBeNull();
-    expect(readmeDivergences(readme, evaluation, calibration)).toEqual([]);
+    expect(readmeDivergences(readme, evaluation, calibration, stab)).toEqual([]);
   });
 
   it("um README com a taxa trocada à mão é reprovado pela mesma checagem", () => {
     const tampered = readme.replace(/<!-- fpr -->[^<]*<!-- \/fpr -->/, "<!-- fpr -->0,00%<!-- /fpr -->");
     expect(tampered).not.toBe(readme);
-    const problems = readmeDivergences(tampered, evaluation, calibration);
+    const problems = readmeDivergences(tampered, evaluation, calibration, stab);
     expect(problems.some((p) => p.startsWith("taxa no README 0,00%"))).toBe(true);
   });
 
   it("um README com uma linha da tabela editada é reprovado", () => {
     const tampered = readme.replace(/\| legitimo \| (\d+) \|/, (_m, n) => `| legitimo | ${Number(n) + 1} |`);
     expect(tampered).not.toBe(readme);
-    expect(readmeDivergences(tampered, evaluation, calibration)).toContain(
+    expect(readmeDivergences(tampered, evaluation, calibration, stab)).toContain(
       "bloco de métricas do README difere do gerado por npm run evaluate",
     );
   });
@@ -62,5 +64,23 @@ describe("calibração", () => {
 
   it("a tabela de limiares de docs/criterio.md é a gerada pela calibração", () => {
     expect(extractBlock(criterio, DOC_START, DOC_END)).toBe(renderThresholdsBlock(calibrate(calibracao)));
+  });
+});
+
+describe("estabilidade entre sementes", () => {
+  it("em todos os pares de sementes, falso positivo e recall ficam dentro da faixa documentada", () => {
+    expect(stab.rows).toHaveLength(SEED_PAIRS.length);
+    for (const row of stab.rows) {
+      expect(row.false_positive_rate, `par ${row.calibration_seed}/${row.evaluation_seed}`).toBeLessThanOrEqual(
+        STABILITY_BANDS.false_positive_rate.max,
+      );
+      expect(row.recall).toBeGreaterThanOrEqual(STABILITY_BANDS.recall.min);
+      expect(row.recall).toBeLessThanOrEqual(STABILITY_BANDS.recall.max);
+    }
+  });
+
+  it("o par principal da estabilidade é o mesmo número do README", () => {
+    expect(stab.rows[0].false_positive_rate).toBe(evaluation.false_positive_rate);
+    expect(stab.rows[0].recall).toBe(evaluation.recall);
   });
 });

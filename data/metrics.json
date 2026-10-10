@@ -463,5 +463,47 @@
         "sample": "ciclo_diario_forte-029"
       }
     }
+  },
+  "estabilidade": {
+    "rows": [
+      {
+        "calibration_seed": 1001,
+        "evaluation_seed": 2002,
+        "false_positive_rate": 0.025,
+        "recall": 0.5777777777777777
+      },
+      {
+        "calibration_seed": 1101,
+        "evaluation_seed": 2102,
+        "false_positive_rate": 0.025,
+        "recall": 0.5777777777777777
+      },
+      {
+        "calibration_seed": 1201,
+        "evaluation_seed": 2202,
+        "false_positive_rate": 0.022727272727272728,
+        "recall": 0.5277777777777778
+      },
+      {
+        "calibration_seed": 1301,
+        "evaluation_seed": 2302,
+        "false_positive_rate": 0.01818181818181818,
+        "recall": 0.5722222222222222
+      },
+      {
+        "calibration_seed": 1401,
+        "evaluation_seed": 2402,
+        "false_positive_rate": 0.015909090909090907,
+        "recall": 0.5666666666666667
+      }
+    ],
+    "false_positive_rate": {
+      "min": 0.015909090909090907,
+      "max": 0.025
+    },
+    "recall": {
+      "min": 0.5277777777777778,
+      "max": 0.5777777777777777
+    }
   }
 }

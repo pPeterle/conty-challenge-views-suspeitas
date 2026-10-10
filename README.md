@@ -67,6 +67,7 @@ Gerado por `npm run evaluate` na partição de **avaliação** (semente 2002, 62
 - Precisão: 90,43%
 - Inconclusivo: 29,09% dos legítimos e 17,78% dos suspeitos
 - Para comparar, na partição de calibração (semente 1001): falso positivo 1,82%, recall 55,56%
+- Estabilidade em 5 pares de sementes (calibra em uma, mede na outra): falso positivo de 1,59% a 2,50% e recall de 52,78% a 57,78%. Faixa exigida pelo teste: falso positivo até 5,00% e recall de 45,00% a 75,00%.
 
 | verdadeiro \ previsto | legitimo | suspeito | inconclusivo |
 |---|---|---|---|

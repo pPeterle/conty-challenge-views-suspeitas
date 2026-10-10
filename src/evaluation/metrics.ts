@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { classify, type Label } from "../classifier/classify.ts";
 import { CALIBRATED, CLASSIFIER_VERSION, type FiringThresholds } from "../classifier/thresholds.ts";
 import type { Dataset, TrueLabel } from "../dataset/generate.ts";
+import { STABILITY_BANDS, type Stability } from "./stability.ts";
 
 type Row = Record<Label, number>;
 
@@ -91,7 +92,7 @@ export const README_END = "<!-- metrics:end -->";
  * Bloco do README gerado a partir das métricas. Ninguém escreve esses números à mão.
  * Os números principais são da partição de avaliação; a de calibração aparece só para comparação.
  */
-export function renderReadmeBlock(evaluation: Metrics, calibration: Metrics): string {
+export function renderReadmeBlock(evaluation: Metrics, calibration: Metrics, stab: Stability): string {
   const m = evaluation;
   const scenarioRows = Object.entries(m.by_scenario).map(
     ([name, r]) =>
@@ -109,6 +110,11 @@ export function renderReadmeBlock(evaluation: Metrics, calibration: Metrics): st
     `- Inconclusivo: ${pct(m.inconclusive_rate.legitimo)} dos legítimos e ${pct(m.inconclusive_rate.suspeito)} dos suspeitos`,
     `- Para comparar, na partição de calibração (semente ${calibration.seed}): falso positivo ` +
       `${pct(calibration.false_positive_rate)}, recall ${pct(calibration.recall)}`,
+    `- Estabilidade em ${stab.rows.length} pares de sementes (calibra em uma, mede na outra): falso positivo de ` +
+      `${pct(stab.false_positive_rate.min)} a ${pct(stab.false_positive_rate.max)} e recall de ` +
+      `${pct(stab.recall.min)} a ${pct(stab.recall.max)}. Faixa exigida pelo teste: falso positivo até ` +
+      `${pct(STABILITY_BANDS.false_positive_rate.max)} e recall de ${pct(STABILITY_BANDS.recall.min)} a ` +
+      `${pct(STABILITY_BANDS.recall.max)}.`,
     "",
     "| verdadeiro \\ previsto | legitimo | suspeito | inconclusivo |",
     "|---|---|---|---|",
@@ -161,14 +167,14 @@ export function parseReadmeFpr(readme: string): number | null {
  * Compara o README com o que foi medido. Devolve a lista de divergências (vazia quando bate). É o que o teste
  * usa, e também o que prova que um README adulterado é pego.
  */
-export function readmeDivergences(readme: string, evaluation: Metrics, calibration: Metrics): string[] {
+export function readmeDivergences(readme: string, evaluation: Metrics, calibration: Metrics, stab: Stability): string[] {
   const problems: string[] = [];
   const written = parseReadmeFpr(readme);
   if (written === null) problems.push("README sem o marcador <!-- fpr -->...<!-- /fpr -->");
   else if (written.toFixed(4) !== evaluation.false_positive_rate.toFixed(4)) {
     problems.push(`taxa no README ${pct(written)} difere da medida ${pct(evaluation.false_positive_rate)}`);
   }
-  if (extractBlock(readme) !== renderReadmeBlock(evaluation, calibration)) {
+  if (extractBlock(readme) !== renderReadmeBlock(evaluation, calibration, stab)) {
     problems.push("bloco de métricas do README difere do gerado por npm run evaluate");
   }
   return problems;
