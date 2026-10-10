@@ -123,6 +123,48 @@ const generators = {
     return humanViews(rng, expected, rng.uniform(0.1, 0.3));
   },
 
+  // Live: horas de audiência alta, com ruído de gente, que termina de vez quando a transmissão acaba.
+  live_fim_seco(rng, n) {
+    const base = logUniform(rng, 20, 200);
+    const expected = dailyAudience(rng, n, base, [0.2, 0.5]);
+    const start = rng.int(12, n - 24);
+    const end = start + rng.int(2, 8);
+    const level = base * rng.uniform(5, 20);
+    for (let t = start; t < end; t++) expected[t] += level;
+    return humanViews(rng, expected, rng.uniform(0.15, 0.3));
+  },
+
+  // Post em destaque na plataforma por algumas horas: sobe em 1 ou 2 horas, fica alto e sai de uma vez.
+  destaque_plataforma(rng, n) {
+    const base = logUniform(rng, 20, 200);
+    const expected = dailyAudience(rng, n, base, [0.2, 0.5]);
+    const start = rng.int(12, n - 36);
+    const end = start + rng.int(6, 24);
+    const level = base * rng.uniform(3, 10);
+    for (let t = start; t < end; t++) expected[t] += level * Math.min(1, (t - start + 1) / 2);
+    for (let t = end; t < n; t++) expected[t] *= 1.2;
+    return humanViews(rng, expected, rng.uniform(0.15, 0.3));
+  },
+
+  // Viral real cortado no meio do decaimento (ex.: a plataforma para de recomendar).
+  viral_cortado(rng, n) {
+    const viral = viralCurve(rng, n, [2, 6], [6, 12]);
+    const floor = dailyAudience(rng, n, viral[0], [0.2, 0.4]);
+    const cut = viral.findIndex((v, t) => t > 12 && v > 5 * viral[0]) + rng.int(4, 12);
+    const expected = viral.map((v, t) => (t >= cut ? floor[t] * 1.5 : v));
+    return humanViews(rng, expected, rng.uniform(0.15, 0.3));
+  },
+
+  // Post incorporado num site grande: a audiência sobe de patamar e fica.
+  degrau_permanente(rng, n) {
+    const base = logUniform(rng, 20, 200);
+    const expected = dailyAudience(rng, n, base, [0.2, 0.5]);
+    const at = rng.int(12, n - 24);
+    const factor = rng.uniform(2, 5);
+    for (let t = at; t < n; t++) expected[t] *= factor;
+    return humanViews(rng, expected, rng.uniform(0.15, 0.3));
+  },
+
   // Viral real que decola quase de uma hora para outra (ex.: compartilhado por uma conta grande).
   viral_subida_rapida(rng, n) {
     return humanViews(rng, viralCurve(rng, n, [0.3, 1], [3, 12]), rng.uniform(0.1, 0.3));
@@ -213,6 +255,10 @@ export const SCENARIOS: Record<Scenario, ScenarioSpec> = {
   viral_subida_rapida: { label: "legitimo", count: 30, hours: [72, 168], hard: true },
   criador_pequeno_ruidoso: { label: "legitimo", count: 40, hours: [72, 168], hard: true },
   ciclo_diario_forte: { label: "legitimo", count: 30, hours: [72, 168], hard: true },
+  live_fim_seco: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
+  destaque_plataforma: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
+  viral_cortado: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
+  degrau_permanente: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
   serie_curta_legitima: { label: "legitimo", count: 20, hours: [24, 47], hard: true },
   pico_comprado: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
   plato_mecanico: { label: "suspeito", count: 30, hours: [72, 168], hard: false },

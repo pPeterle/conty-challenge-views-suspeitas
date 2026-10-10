@@ -67,19 +67,26 @@ function peakSignal(m: Measurements, thr: FiringThresholds, fired: boolean): Sig
     };
   }
   const tailText = `Nas ${t.tailHours} horas seguintes, juntas, vieram ${fmtPct(pk.tail)} das views extras da hora do pico`;
+  const riseText =
+    pk.rise < t.maxRise
+      ? "chegou de uma hora para outra"
+      : `teve subida gradual (as ${t.riseHours} horas antes já somavam ${fmtPct(pk.rise)} do excesso do pico)`;
   let detail: string;
   if (fired) {
     detail =
-      `${peakText} ${tailText}: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo ` +
-      `que estoura de verdade (abaixo de ${fmtPct(thr.peak_tail)} é o formato de views entregues em lote).`;
-  } else if (pk.width > t.maxBlockWidth) {
-    detail = `${peakText} ${tailText}. Um bloco tão longo é um patamar, não um pico isolado.`;
+      `${peakText} O pico ${riseText}. ${tailText}: as views voltaram à base logo depois, sem a cauda de ` +
+      `decaimento de um vídeo que estoura de verdade. Degrau de até ${t.maxBlockWidth} horas que some sem cauda ` +
+      `(abaixo de ${fmtPct(thr.peak_tail)}) é o formato de views entregues em lote.`;
   } else if (pk.tail < t.tailGray) {
-    detail =
-      `${peakText} ${tailText}. É uma cauda curta, entre ${fmtPct(thr.peak_tail)} e ${fmtPct(t.tailGray)}: ` +
-      `pode ser um viral que esfriou rápido ou um lote comprado com alguma sobra.`;
+    const why =
+      pk.width > t.maxBlockWidth
+        ? `durou mais de ${t.maxBlockWidth} horas, o que parece mais live ou destaque na plataforma do que lote`
+        : pk.rise >= t.maxRise
+          ? `${riseText}, como viral real que foi cortado`
+          : `a cauda ficou entre ${fmtPct(thr.peak_tail)} e ${fmtPct(t.tailGray)}, como viral que esfriou rápido`;
+    detail = `${peakText} ${tailText}. Cauda curta, mas o pico ${why}.`;
   } else {
-    detail = `${peakText} ${tailText}: subida seguida de decaimento gradual, como em audiência real.`;
+    detail = `${peakText} ${tailText}: decaimento gradual, como em audiência real.`;
   }
   return { ...base, value: round4(pk.tail), evaluated: true, detail };
 }
@@ -94,15 +101,21 @@ function dropSignal(m: Measurements, thr: FiringThresholds, fired: boolean): Sig
       value: null,
       evaluated: false,
       detail:
-        `Não avaliado: em nenhum trecho as views ficaram em ${t.minLevelBefore} views/h ou mais por ` +
-        `${t.windowBefore} horas, nível abaixo do qual o ruído normal já produz quedas grandes.`,
+        `Não avaliado: nenhum trecho ficou em ${t.minLevelBefore} views/h ou mais por ${t.windowBefore} horas ` +
+        `e depois caiu mais de ${t.poissonSigmas} desvios de Poisson; abaixo disso, o ruído normal de contagem ` +
+        `já produz quedas grandes.`,
     };
   }
   const detail = fired
     ? `Na hora ${d.hour} as views caíram de ${fmtInt(d.from)} para ${fmtInt(d.to)} de uma hora para outra, ` +
       `depois de um patamar de ${fmtRate(d.before)} nas ${t.windowBefore} horas anteriores, e ficaram em ` +
       `${fmtRate(d.after)}. Queda de ${fmtPct(d.value)} (limiar ${fmtPct(thr.drop)}): audiência humana ` +
-      `desacelera aos poucos, e um corte assim lembra um pacote de views que acabou.`
+      `costuma desacelerar aos poucos, e um corte assim lembra um pacote de views que acabou. ` +
+      (d.plateauDispersion < t.regularPlateau
+        ? `O patamar antes da queda era regular demais para gente (índice de dispersão ` +
+          `${fmtDec(d.plateauDispersion)}, abaixo de ${fmtDec(t.regularPlateau)}).`
+        : `O patamar antes da queda variava como audiência real (índice de dispersão ` +
+          `${fmtDec(d.plateauDispersion)}).`)
     : `A maior queda sustentada de uma hora para outra foi de ${fmtPct(Math.max(0, d.value))}, na hora ${d.hour} ` +
       `(dispara a partir de ${fmtPct(thr.drop)}).`;
   return { ...base, value: round4(d.value), evaluated: true, detail };

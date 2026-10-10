@@ -121,9 +121,10 @@ export function renderReadmeBlock(evaluation: Metrics, calibration: Metrics): st
     "",
     `Falsos positivos na avaliação: ${m.false_positives.length === 0 ? "nenhum" : m.false_positives.join(", ")}.`,
     "",
-    "Folga dos limiares: valor medido na série legítima que chegou mais perto de disparar cada sinal. Em " +
-      "rajadas_periodicas o valor só conta com intervalo de 2 a 12 horas; valor alto com intervalo de 24 horas " +
-      "(ciclo diário) não dispara.",
+    "Folga dos limiares: valor medido na série legítima que chegou mais perto de disparar cada sinal. Valor do " +
+      "lado de disparo quer dizer que o sinal disparou nessa série, o que não implica `suspeito` (queda abrupta " +
+      "isolada vira `inconclusivo`). Em rajadas_periodicas o valor só conta com intervalo de 2 a 12 horas; valor " +
+      "alto com intervalo de 24 horas (ciclo diário) não dispara.",
     "",
     "| sinal | dispara quando | limiar | legítimo mais próximo | série |",
     "|---|---|---|---|---|",

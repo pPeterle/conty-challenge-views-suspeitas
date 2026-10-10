@@ -2,33 +2,33 @@
   "avaliacao": {
     "classifier_version": "1.0.0",
     "seed": 2002,
-    "dataset_sha256": "2c891af6a0b0cd5b9fbc39463ee333b00d374f20868ef7b8794164d3c2ac4914",
+    "dataset_sha256": "76da2b80d9e37b0e89f22cb55a12266fa6650aa4b785d3f05a99a2d78b5120e3",
     "thresholds": {
       "peak_tail": 0.3,
-      "drop": 0.8,
+      "drop": 0.9,
       "mechanical_dispersion": 0.2,
       "periodic_fraction": 1
     },
-    "total": 520,
-    "legit_total": 340,
+    "total": 620,
+    "legit_total": 440,
     "suspicious_total": 180,
-    "false_positive_rate": 0.026470588235294117,
-    "recall": 0.7444444444444445,
-    "precision": 0.9370629370629371,
+    "false_positive_rate": 0.025,
+    "recall": 0.5777777777777777,
+    "precision": 0.9043478260869565,
     "inconclusive_rate": {
-      "legitimo": 0.17647058823529413,
-      "suspeito": 0.022222222222222223
+      "legitimo": 0.2909090909090909,
+      "suspeito": 0.17777777777777778
     },
     "confusion": {
       "legitimo": {
-        "legitimo": 271,
-        "suspeito": 9,
-        "inconclusivo": 60
+        "legitimo": 301,
+        "suspeito": 11,
+        "inconclusivo": 128
       },
       "suspeito": {
-        "legitimo": 42,
-        "suspeito": 134,
-        "inconclusivo": 4
+        "legitimo": 44,
+        "suspeito": 104,
+        "inconclusivo": 32
       }
     },
     "by_scenario": {
@@ -84,17 +84,49 @@
         "label": "legitimo",
         "hard": true,
         "total": 40,
-        "legitimo": 14,
-        "suspeito": 9,
-        "inconclusivo": 17
+        "legitimo": 16,
+        "suspeito": 3,
+        "inconclusivo": 21
       },
       "ciclo_diario_forte": {
         "label": "legitimo",
         "hard": true,
         "total": 30,
-        "legitimo": 23,
+        "legitimo": 17,
         "suspeito": 0,
-        "inconclusivo": 7
+        "inconclusivo": 13
+      },
+      "live_fim_seco": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 1,
+        "suspeito": 8,
+        "inconclusivo": 16
+      },
+      "destaque_plataforma": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 7,
+        "suspeito": 0,
+        "inconclusivo": 18
+      },
+      "viral_cortado": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 2,
+        "suspeito": 0,
+        "inconclusivo": 23
+      },
+      "degrau_permanente": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 24,
+        "suspeito": 0,
+        "inconclusivo": 1
       },
       "serie_curta_legitima": {
         "label": "legitimo",
@@ -117,16 +149,16 @@
         "hard": false,
         "total": 30,
         "legitimo": 0,
-        "suspeito": 30,
-        "inconclusivo": 0
+        "suspeito": 29,
+        "inconclusivo": 1
       },
       "queda_abrupta": {
         "label": "suspeito",
         "hard": false,
         "total": 30,
-        "legitimo": 2,
-        "suspeito": 28,
-        "inconclusivo": 0
+        "legitimo": 4,
+        "suspeito": 0,
+        "inconclusivo": 26
       },
       "bot_periodico": {
         "label": "suspeito",
@@ -141,8 +173,8 @@
         "hard": true,
         "total": 20,
         "legitimo": 0,
-        "suspeito": 16,
-        "inconclusivo": 4
+        "suspeito": 15,
+        "inconclusivo": 5
       },
       "compra_imitando_organico": {
         "label": "suspeito",
@@ -163,27 +195,29 @@
     },
     "false_positives": [
       "criador_pequeno_ruidoso-001",
-      "criador_pequeno_ruidoso-004",
       "criador_pequeno_ruidoso-005",
       "criador_pequeno_ruidoso-009",
-      "criador_pequeno_ruidoso-017",
-      "criador_pequeno_ruidoso-024",
-      "criador_pequeno_ruidoso-025",
-      "criador_pequeno_ruidoso-026",
-      "criador_pequeno_ruidoso-038"
+      "live_fim_seco-001",
+      "live_fim_seco-002",
+      "live_fim_seco-006",
+      "live_fim_seco-014",
+      "live_fim_seco-015",
+      "live_fim_seco-018",
+      "live_fim_seco-019",
+      "live_fim_seco-024"
     ],
     "legit_margins": {
       "pico_sem_cauda": {
         "threshold": 0.3,
         "fires_when": "below",
-        "closest": 0.1271,
-        "sample": "criador_pequeno_ruidoso-009"
+        "closest": 0,
+        "sample": "live_fim_seco-002"
       },
       "queda_abrupta": {
-        "threshold": 0.8,
+        "threshold": 0.9,
         "fires_when": "at_or_above",
-        "closest": 0.873,
-        "sample": "criador_pequeno_ruidoso-038"
+        "closest": 0.9694,
+        "sample": "viral_cortado-006"
       },
       "repeticao_mecanica": {
         "threshold": 0.2,
@@ -202,33 +236,33 @@
   "calibracao": {
     "classifier_version": "1.0.0",
     "seed": 1001,
-    "dataset_sha256": "2fc481027fd34e812aebd56dcdcee2912c4fb7b231d9f500e86450bb0d6a2c72",
+    "dataset_sha256": "7db7ad2944b5bdfcc2493024c92abbe758a0114b4de4bb0714fa593add2b52c5",
     "thresholds": {
       "peak_tail": 0.3,
-      "drop": 0.8,
+      "drop": 0.9,
       "mechanical_dispersion": 0.2,
       "periodic_fraction": 1
     },
-    "total": 520,
-    "legit_total": 340,
+    "total": 620,
+    "legit_total": 440,
     "suspicious_total": 180,
-    "false_positive_rate": 0.01764705882352941,
-    "recall": 0.7166666666666667,
-    "precision": 0.9555555555555556,
+    "false_positive_rate": 0.01818181818181818,
+    "recall": 0.5555555555555556,
+    "precision": 0.9259259259259259,
     "inconclusive_rate": {
-      "legitimo": 0.18529411764705883,
-      "suspeito": 0.03888888888888889
+      "legitimo": 0.2772727272727273,
+      "suspeito": 0.2
     },
     "confusion": {
       "legitimo": {
-        "legitimo": 271,
-        "suspeito": 6,
-        "inconclusivo": 63
+        "legitimo": 310,
+        "suspeito": 8,
+        "inconclusivo": 122
       },
       "suspeito": {
         "legitimo": 44,
-        "suspeito": 129,
-        "inconclusivo": 7
+        "suspeito": 100,
+        "inconclusivo": 36
       }
     },
     "by_scenario": {
@@ -285,16 +319,48 @@
         "hard": true,
         "total": 40,
         "legitimo": 13,
-        "suspeito": 6,
-        "inconclusivo": 21
+        "suspeito": 3,
+        "inconclusivo": 24
       },
       "ciclo_diario_forte": {
         "label": "legitimo",
         "hard": true,
         "total": 30,
-        "legitimo": 25,
+        "legitimo": 19,
         "suspeito": 0,
-        "inconclusivo": 5
+        "inconclusivo": 11
+      },
+      "live_fim_seco": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 1,
+        "suspeito": 5,
+        "inconclusivo": 19
+      },
+      "destaque_plataforma": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 16,
+        "suspeito": 0,
+        "inconclusivo": 9
+      },
+      "viral_cortado": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 4,
+        "suspeito": 0,
+        "inconclusivo": 21
+      },
+      "degrau_permanente": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 24,
+        "suspeito": 0,
+        "inconclusivo": 1
       },
       "serie_curta_legitima": {
         "label": "legitimo",
@@ -325,8 +391,8 @@
         "hard": false,
         "total": 30,
         "legitimo": 4,
-        "suspeito": 26,
-        "inconclusivo": 0
+        "suspeito": 0,
+        "inconclusivo": 26
       },
       "bot_periodico": {
         "label": "suspeito",
@@ -341,8 +407,8 @@
         "hard": true,
         "total": 20,
         "legitimo": 0,
-        "suspeito": 13,
-        "inconclusivo": 7
+        "suspeito": 10,
+        "inconclusivo": 10
       },
       "compra_imitando_organico": {
         "label": "suspeito",
@@ -362,25 +428,27 @@
       }
     },
     "false_positives": [
-      "criador_pequeno_ruidoso-004",
       "criador_pequeno_ruidoso-020",
-      "criador_pequeno_ruidoso-024",
       "criador_pequeno_ruidoso-031",
-      "criador_pequeno_ruidoso-033",
-      "criador_pequeno_ruidoso-038"
+      "criador_pequeno_ruidoso-038",
+      "live_fim_seco-002",
+      "live_fim_seco-016",
+      "live_fim_seco-017",
+      "live_fim_seco-019",
+      "live_fim_seco-025"
     ],
     "legit_margins": {
       "pico_sem_cauda": {
         "threshold": 0.3,
         "fires_when": "below",
-        "closest": 0.157,
-        "sample": "criador_pequeno_ruidoso-004"
+        "closest": 0,
+        "sample": "live_fim_seco-023"
       },
       "queda_abrupta": {
-        "threshold": 0.8,
+        "threshold": 0.9,
         "fires_when": "at_or_above",
-        "closest": 0.9005,
-        "sample": "criador_pequeno_ruidoso-024"
+        "closest": 0.9797,
+        "sample": "viral_cortado-002"
       },
       "repeticao_mecanica": {
         "threshold": 0.2,

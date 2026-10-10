@@ -107,13 +107,14 @@ describe("casos óbvios", () => {
     expect(result.reason).toContain("quase sem variar");
   });
 
-  it("patamar que despenca de uma hora para outra e não volta é queda abrupta", () => {
-    const series = steady(96, 40).map((v, t) => (t >= 20 && t < 60 ? v * 10 : v));
+  it("patamar regular demais que despenca de uma hora para outra é suspeito", () => {
+    // 1.000 views/h variando ±1: regular demais para gente, e depois some.
+    const series = steady(96, 40).map((v, t) => (t >= 20 && t < 60 ? 1000 + (t % 3) - 1 : v));
     const result = classify(series);
     expect(result.classification).toBe("suspeito");
-    const drop = signal(result, "queda_abrupta");
-    expect(drop.fired).toBe(true);
+    expect(signal(result, "queda_abrupta").fired).toBe(true);
     expect(result.reason).toContain("Na hora 60");
+    expect(result.reason).toContain("regular demais para gente");
   });
 
   it("rajada de 800 views a cada 6 horas é periódica", () => {
@@ -129,6 +130,33 @@ describe("casos óbvios", () => {
   it("decaimento natural depois da publicação é legítimo", () => {
     const series = Array.from({ length: 120 }, (_, t) => Math.round(2000 * Math.exp(-t / 30) + 50 + ((t * 13) % 17)));
     expect(classify(series).classification).toBe("legitimo");
+  });
+});
+
+describe("queda abrupta isolada", () => {
+  it("patamar com variação de gente que some de uma vez fica inconclusivo, não suspeito", () => {
+    // Pode ser live que terminou, destaque que acabou ou viral cortado.
+    const series = steady(96, 40).map((v, t) => (t >= 20 && t < 60 ? v * 25 : v));
+    const result = classify(series);
+    expect(signal(result, "queda_abrupta").fired).toBe(true);
+    expect(result.signals.filter((s) => s.fired).map((s) => s.name)).toEqual(["queda_abrupta"]);
+    expect(result.classification).toBe("inconclusivo");
+    expect(result.reason).toContain("Sozinha, uma queda assim também acontece");
+  });
+
+  it("queda junto com outro sinal continua suspeita", () => {
+    // Rajadas a cada 4 horas durante o patamar e depois corte.
+    const series = steady(120, 40).map((v, t) => (t >= 20 && t < 80 ? v * 25 + (t % 4 === 0 ? 5000 : 0) : v));
+    const result = classify(series);
+    expect(signal(result, "queda_abrupta").fired).toBe(true);
+    expect(signal(result, "rajadas_periodicas").fired).toBe(true);
+    expect(result.classification).toBe("suspeito");
+  });
+
+  it("criador pequeno: queda menor que cinco desvios de Poisson do patamar não é avaliada", () => {
+    // Patamar de 36 caindo para 12: queda de 24 views, abaixo de 5 × √36 = 30.
+    const series = Array.from({ length: 96 }, (_, t) => (t < 48 ? 36 + (t % 2) : 12 + (t % 2)));
+    expect(signal(classify(series), "queda_abrupta").evaluated).toBe(false);
   });
 });
 

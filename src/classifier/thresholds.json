@@ -3,17 +3,18 @@
   "target_fpr": 0.02,
   "seed": 1001,
   "combinations_tested": 875,
-  "combinations_within_target": 165,
+  "combinations_within_target": 385,
+  "target_met": true,
   "thresholds": {
     "peak_tail": 0.3,
-    "drop": 0.8,
+    "drop": 0.9,
     "mechanical_dispersion": 0.2,
     "periodic_fraction": 1
   },
   "calibration": {
-    "false_positive_rate": 0.01764705882352941,
-    "recall": 0.7166666666666667,
-    "false_positives": 6,
-    "true_positives": 129
+    "false_positive_rate": 0.01818181818181818,
+    "recall": 0.5555555555555556,
+    "false_positives": 8,
+    "true_positives": 100
   }
 }

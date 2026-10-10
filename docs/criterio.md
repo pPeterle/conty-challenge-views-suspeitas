@@ -36,36 +36,41 @@ Os valores usados na versão inicial, escolhidos à mão antes de existir calibr
 como.
 
 <!-- thresholds:start -->
-Gerado por `npm run calibrate` na partição de calibração (semente 1001). Regra: maximizar recall com falso positivo <= 2% na partição de calibração. 875 combinações testadas, 165 dentro da meta.
+Gerado por `npm run calibrate` na partição de calibração (semente 1001). Regra: maximizar recall com falso positivo <= 2% na partição de calibração. 875 combinações testadas, 385 dentro da meta.
 
 | sinal | dispara quando o valor fica | limiar escolhido | candidatos |
 |---|---|---|---|
 | pico_sem_cauda | abaixo de | 0,3 | 0,1; 0,2; 0,3; 0,4; 0,5 |
-| queda_abrupta | igual ou acima de | 0,8 | 0,9; 0,85; 0,8; 0,75; 0,7; 0,65; 0,6 |
+| queda_abrupta | igual ou acima de | 0,9 | 0,9; 0,85; 0,8; 0,75; 0,7; 0,65; 0,6 |
 | repeticao_mecanica | abaixo de | 0,2 | 0,05; 0,1; 0,2; 0,3; 0,5 |
 | rajadas_periodicas | igual ou acima de | 1 | 1; 0,9; 0,8; 0,7; 0,6 |
 
-Na calibração: falso positivo 1,76%, recall 71,67%.
+Na calibração: falso positivo 1,82%, recall 55,56%.
 <!-- thresholds:end -->
 
 ## Sinais
 
 ### 1. `pico_sem_cauda`: pico isolado que volta à linha de base
 
-A ideia: views compradas chegam num bloco de 1 a 3 horas e param. Um vídeo que estoura de verdade é
-compartilhado, entra em recomendação e continua recebendo views por muitas horas, com decaimento gradual.
+A ideia: views compradas chegam num degrau de 1 a 3 horas, de nada para o pico numa hora, e param. Um vídeo
+que estoura de verdade é compartilhado, entra em recomendação e continua recebendo views por muitas horas,
+com decaimento gradual.
 
 1. `p` é a hora de maior `x`. O excesso do pico é `x[p] - base`.
 2. O pico só conta se for relevante: `x[p] >= 5 × max(base, 1)` e excesso `>= 100` views. Sem pico relevante,
    o sinal não é avaliado.
 3. O "bloco do pico" são as horas contíguas a `p` cujo excesso é pelo menos 50% do excesso do pico.
    A largura do bloco é reportada.
-4. Cauda: soma do excesso positivo nas **10 horas seguintes ao fim do bloco**, dividida pelo excesso do pico.
+4. Subida: soma do excesso positivo nas 3 horas antes do bloco, dividida pelo excesso do pico. Degrau dá
+   perto de 0; viral e destaque na plataforma sobem aos poucos.
+5. Cauda: soma do excesso positivo nas **10 horas seguintes ao fim do bloco**, dividida pelo excesso do pico.
    Um decaimento exponencial com meia-vida de 3 horas dá cerca de 2; um pico comprado dá perto de 0.
-5. Precisa haver 10 horas depois do bloco. Se o pico está no fim da série, a cauda não é observável.
+6. Precisa haver 10 horas depois do bloco. Se o pico está no fim da série, a cauda não é observável.
 
-Dispara se a cauda fica abaixo do limiar calibrado **e** a largura do bloco é de no máximo 6 horas (bloco
-mais largo é patamar, não pico, e é assunto dos outros sinais). Entre o limiar e 0,8 é zona cinza.
+Dispara se a cauda fica abaixo do limiar calibrado, o bloco tem no máximo 3 horas **e** a subida fica abaixo
+de 15%. Pico relevante com cauda abaixo de 0,8 que não dispara (cauda curta, bloco mais largo ou subida
+gradual) é zona cinza: um viral cortado, uma live ou um destaque têm esse formato, e o resultado é
+`inconclusivo`.
 
 ### 2. `queda_abrupta`: patamar que cai de uma hora para outra e não volta
 
@@ -75,7 +80,8 @@ hora para outra as views despencam e ficam baixas.
 Para cada hora `t` com pelo menos 6 horas antes e 3 depois:
 
 - `antes` = mediana de `x[t-6 .. t-1]`, `depois` = mediana de `x[t .. t+5]` (até onde houver série).
-- Só avalia se `antes >= 30` views/h (abaixo disso, ruído de contagem produz quedas grandes à toa).
+- Só avalia se `antes >= 30` views/h e se `antes - depois` passa de 5 desvios de Poisson do patamar
+  (`5 × √antes`). Abaixo disso, ruído de contagem de conta pequena produz quedas grandes à toa.
 - Queda na hora: `1 - x[t] / x[t-1]`. Queda sustentada: `1 - depois / antes`.
 - Valor de `t`: o menor dos dois (as duas coisas precisam acontecer).
 - Queda sazonal não conta: se a queda sustentada no mesmo horário 24 horas antes ou 24 horas depois também
@@ -86,6 +92,10 @@ O valor do sinal é o maior entre todos os `t` avaliados. Dispara se for igual o
 
 O pico comprado curto não dispara este sinal: um bloco de até 3 horas não move a mediana de 6 horas
 anteriores. Isso mantém os sinais separados e o motivo mais preciso.
+
+Também mede o índice de dispersão (variância / média) das até 12 horas antes da queda. Abaixo de 0,3 o patamar
+era regular demais para gente (Poisson daria perto de 1). Isso decide se a queda, sozinha, basta para acusar
+(ver "Como os sinais se combinam").
 
 ### 3. `repeticao_mecanica`: variação menor que a de pessoas reais
 
@@ -117,8 +127,12 @@ Dispara se o valor é igual ou maior que o limiar calibrado e `k` está entre 2 
 Na ordem, a primeira regra que bate decide:
 
 1. Série com menos de 24 horas: `inconclusivo` (a API nem chega aqui, devolve 400).
-2. Algum sinal disparou: `suspeito`. O motivo junta a explicação de cada sinal que disparou.
-3. Pico relevante com cauda na zona cinza (entre o limiar calibrado e 0,8) ou não observável: `inconclusivo`.
+2. Algum sinal disparou: `suspeito`, com uma exceção. O motivo junta a explicação de cada sinal que disparou.
+   A exceção é a queda abrupta isolada: se só `queda_abrupta` disparou e o patamar antes dela variava como
+   gente (dispersão de 0,3 ou mais), o resultado é `inconclusivo`. Live que termina, post que sai do destaque
+   da plataforma e viral cortado têm exatamente esse formato, e acusar com base nisso é o falso positivo caro
+   do enunciado. Com outro sinal junto, ou patamar regular demais, continua `suspeito`.
+3. Pico relevante na zona cinza (ver `pico_sem_cauda`) ou com cauda não observável: `inconclusivo`.
 4. Volume baixo: mediana abaixo de 5 views/h **e** nenhuma hora com 100 views ou mais: `inconclusivo`. Com
    tão poucas views, ruído e padrão ficam parecidos. Esta regra só vale quando nenhum sinal disparou (regra
    2): uma conta pequena com um sinal disparado continua `suspeito`, e uma com mediana baixa mas alguma hora
@@ -126,9 +140,9 @@ Na ordem, a primeira regra que bate decide:
 5. Série com menos de 48 horas: `inconclusivo`. Cedo demais para afirmar que é legítima.
 6. Caso contrário: `legitimo`.
 
-Um sinal sozinho basta para `suspeito` porque cada limiar foi posto onde audiência humana quase nunca chega
-(ver acima). A escolha de exigir só um sinal aumenta o recall; o custo é que um falso disparo de qualquer
-sinal vira acusação. A taxa medida no dataset está no README.
+Fora a queda isolada, um sinal sozinho basta para `suspeito`, porque cada limiar foi posto onde audiência
+humana quase nunca chega. Isso aumenta o recall; o custo é que um falso disparo de qualquer outro sinal vira
+acusação. A taxa medida no dataset está no README.
 
 ## Calibração
 
@@ -167,13 +181,19 @@ observar. Há um teste para isso (`test/unit/classify.test.ts`) e um exemplo no 
 - **Rajadas com intervalo irregular**, periódicas a cada 24 horas, ou tão frequentes (a cada 2 horas) que viram
   a própria linha de base local. Com o limiar calibrado de periodicidade, basta um intervalo fora do padrão
   para o sinal não disparar.
+- **Live curta.** Uma transmissão de 2 ou 3 horas que começa e termina de uma vez tem o mesmo formato de um
+  lote comprado (degrau sem cauda) e vira `suspeito`. É a maior fonte de falso positivo no dataset. Distinguir
+  exigiria saber que houve live, que não está na série.
+- **Queda abrupta de patamar com ruído de gente.** Por ser o formato de live, destaque e viral cortado, sozinha
+  ela dá `inconclusivo`. O robô que entrega um patamar com ruído realista e para de uma vez não é acusado.
 - **Pico comprado no fim da série.** Cai em `inconclusivo` até haver horas suficientes depois.
 - **Mais de um pico.** Só o maior pico é examinado por `pico_sem_cauda`. Um pico comprado menor que um viral
   orgânico no mesmo post passa.
 - **Contas pequenas.** Com mediana abaixo de 5 views/h, nenhuma hora com 100 views ou mais e nenhum sinal
-  disparado, o resultado é `inconclusivo` (regra 4). Pior: criador pequeno com ruído muito alto e sem
-  correlação entre horas é a principal fonte de falso positivo no dataset. Uma hora
-  boa seguida de uma hora fraca parece `queda_abrupta`, e um pico casual sem cauda parece `pico_sem_cauda`.
+  disparado, o resultado é `inconclusivo` (regra 4). Criador pequeno com ruído muito alto e sem
+  correlação entre horas ainda gera alguns falsos positivos: uma hora de sorte sem nada depois tem o formato
+  de `pico_sem_cauda`. A queda abrupta nessas contas quase sempre fica abaixo de 5 desvios de Poisson e nem é
+  avaliada.
 - **Causas legítimas de queda abrupta.** Post apagado, arquivado, tornado privado ou retirado de uma
   recomendação também derruba views de uma hora para outra. O sinal descreve o formato, não a intenção;
   `suspeito` quer dizer "merece revisão humana", não "fraude comprovada".
@@ -198,6 +218,10 @@ verdadeiro:
 | legítimo, difícil | `viral_subida_rapida` | viral que decola em menos de uma hora |
 | legítimo, difícil | `criador_pequeno_ruidoso` | 3 a 40 views/h com ruído muito alto e sem correlação entre horas |
 | legítimo, difícil | `ciclo_diario_forte` | ciclo dia/noite com amplitude de 0,8 a 0,95, ou noite cortada quase a zero |
+| legítimo, difícil | `live_fim_seco` | live de 2 a 8 horas com 5 a 20 vezes a audiência normal, que termina de vez |
+| legítimo, difícil | `destaque_plataforma` | 6 a 24 horas em destaque, com subida de 1 ou 2 horas e saída de uma vez |
+| legítimo, difícil | `viral_cortado` | viral com subida gradual, cortado de uma hora para outra no decaimento |
+| legítimo, difícil | `degrau_permanente` | audiência que sobe de patamar e fica (post incorporado num site grande) |
 | legítimo, difícil | `serie_curta_legitima` | audiência normal, só 24 a 47 horas de série |
 | suspeito | `pico_comprado` | série orgânica mais um bloco de 1 a 3 horas de 10 a 60 vezes a base |
 | suspeito | `plato_mecanico` | patamar quase constante entregue por robô sobre pouca audiência real |

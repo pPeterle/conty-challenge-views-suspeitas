@@ -10,9 +10,18 @@ export interface Measurements {
   base: number;
   peak:
     | { status: "none"; hour: number; views: number }
-    | { status: "unobservable"; hour: number; views: number; ratio: number; width: number; hoursAfter: number }
-    | { status: "measured"; hour: number; views: number; ratio: number; width: number; tail: number };
-  drop: { hour: number; value: number; before: number; after: number; from: number; to: number } | null;
+    | { status: "unobservable"; hour: number; views: number; ratio: number; width: number; rise: number; hoursAfter: number }
+    | { status: "measured"; hour: number; views: number; ratio: number; width: number; rise: number; tail: number };
+  drop: {
+    hour: number;
+    value: number;
+    before: number;
+    after: number;
+    from: number;
+    to: number;
+    /** Índice de dispersão (variância / média) das horas antes da queda. */
+    plateauDispersion: number;
+  } | null;
   mechanical: { start: number; dispersion: number; mean: number; sample: number[] } | null;
   periodic: { bursts: number; firstBurst: number; period: number | null; fraction: number | null };
 }
@@ -30,7 +39,11 @@ function measurePeak(x: readonly number[], base: number): Measurements["peak"] {
   const blockMin = t.blockFraction * excess;
   while (lo > 0 && x[lo - 1] - base >= blockMin) lo--;
   while (hi < x.length - 1 && x[hi + 1] - base >= blockMin) hi++;
-  const common = { hour: p, views: x[p], ratio: x[p] / safeBase, width: hi - lo + 1 };
+  // Subida: excesso nas horas logo antes do bloco, como fração do excesso do pico. Lote comprado é degrau (perto
+  // de 0); viral e destaque sobem aos poucos.
+  let riseSum = 0;
+  for (let i = Math.max(0, lo - t.riseHours); i < lo; i++) riseSum += Math.max(0, x[i] - base);
+  const common = { hour: p, views: x[p], ratio: x[p] / safeBase, width: hi - lo + 1, rise: riseSum / excess };
   const hoursAfter = x.length - 1 - hi;
   if (hoursAfter < t.tailHours) return { status: "unobservable", ...common, hoursAfter };
 
@@ -65,10 +78,15 @@ function measureDrop(x: readonly number[]): Measurements["drop"] {
     if (before < t.minLevelBefore) continue;
     if (isSeasonal(x, i)) continue;
     const after = median(x.slice(i, Math.min(x.length, i + t.windowAfter)));
+    if (before - after < t.poissonSigmas * Math.sqrt(before)) continue;
     const hourDrop = x[i - 1] > 0 ? 1 - x[i] / x[i - 1] : 0;
     // As duas coisas precisam acontecer: cair na hora e continuar baixo.
     const value = Math.min(hourDrop, 1 - after / before);
-    if (best === null || value > best.value) best = { hour: i, value, before, after, from: x[i - 1], to: x[i] };
+    if (best === null || value > best.value) {
+      const plateau = x.slice(Math.max(0, i - t.plateauWindow), i);
+      const plateauDispersion = variance(plateau) / Math.max(mean(plateau), 1);
+      best = { hour: i, value, before, after, from: x[i - 1], to: x[i], plateauDispersion };
+    }
   }
   return best;
 }

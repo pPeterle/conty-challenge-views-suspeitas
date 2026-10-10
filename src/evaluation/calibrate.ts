@@ -23,6 +23,8 @@ export interface CalibrationResult {
   seed: number;
   combinations_tested: number;
   combinations_within_target: number;
+  /** false quando nenhuma combinação ficou dentro da meta e valeu a de menor falso positivo. */
+  target_met: boolean;
   thresholds: FiringThresholds;
   calibration: { false_positive_rate: number; recall: number; false_positives: number; true_positives: number };
 }
@@ -41,6 +43,7 @@ export function calibrate(dataset: Dataset): CalibrationResult {
   const suspTotal = prepared.length - legitTotal;
 
   let best: { thr: FiringThresholds; fp: number; tp: number } | null = null;
+  let fallback: { thr: FiringThresholds; fp: number; tp: number } | null = null;
   let tested = 0;
   let feasible = 0;
   for (const peak_tail of GRID.peak_tail)
@@ -56,17 +59,21 @@ export function calibrate(dataset: Dataset): CalibrationResult {
             else tp++;
           }
           tested++;
+          if (fallback === null || fp < fallback.fp || (fp === fallback.fp && tp > fallback.tp)) fallback = { thr, fp, tp };
           if (fp / legitTotal > TARGET_FPR) continue;
           feasible++;
           if (best === null || tp > best.tp || (tp === best.tp && fp < best.fp)) best = { thr, fp, tp };
         }
-  if (best === null) throw new Error("Nenhuma combinação da grade respeita a meta de falso positivo.");
+  // Sem combinação dentro da meta, fica a de menor falso positivo (empate: maior recall). O resultado registra
+  // isso em `target_met`, e o README mostra.
+  if (best === null) best = fallback!;
   return {
     rule: `maximizar recall com falso positivo <= ${TARGET_FPR * 100}% na partição de calibração`,
     target_fpr: TARGET_FPR,
     seed: dataset.seed,
     combinations_tested: tested,
     combinations_within_target: feasible,
+    target_met: feasible > 0,
     thresholds: best.thr,
     calibration: {
       false_positive_rate: best.fp / legitTotal,
@@ -88,7 +95,8 @@ export function renderThresholdsBlock(c: CalibrationResult): string {
   return [
     DOC_START,
     `Gerado por \`npm run calibrate\` na partição de calibração (semente ${c.seed}). Regra: ${c.rule}. ` +
-      `${c.combinations_tested} combinações testadas, ${c.combinations_within_target} dentro da meta.`,
+      `${c.combinations_tested} combinações testadas, ${c.combinations_within_target} dentro da meta.` +
+      (c.target_met ? "" : " Nenhuma ficou dentro da meta, então valeu a de menor falso positivo (empate: maior recall)."),
     "",
     "| sinal | dispara quando o valor fica | limiar escolhido | candidatos |",
     "|---|---|---|---|",

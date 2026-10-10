@@ -68,6 +68,12 @@ export function classify(views: readonly number[], thr: FiringThresholds = CALIB
         .map((s) => s.detail)
         .join(" ")}`;
       break;
+    case "queda_isolada":
+      reason =
+        `Inconclusivo: prefiro não acusar. ${signals[1].detail} Sozinha, uma queda assim também acontece quando ` +
+        `uma live termina, um post sai do destaque da plataforma ou um viral é cortado, e nenhum outro sinal ` +
+        `disparou. Vale olhar o que aconteceu com o post nessa hora.`;
+      break;
     case "cauda_nao_observavel":
       reason = `Inconclusivo: prefiro não acusar ainda. ${peak.detail}`;
       break;

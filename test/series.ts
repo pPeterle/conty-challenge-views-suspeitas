@@ -1,8 +1,12 @@
 /** Séries montadas à mão para os testes. Determinísticas, sem PRNG, para dar para conferir na cabeça. */
 
-/** Audiência estável em torno de `level`, com uma oscilação fixa de ±10% (não é constante, como gente). */
+/**
+ * Audiência estável em torno de `level`, com uma oscilação fixa de pelo menos dois desvios de Poisson
+ * (ou 10%, o que for maior): varia como gente, não como robô.
+ */
 export function steady(hours: number, level = 100): number[] {
-  return Array.from({ length: hours }, (_, t) => Math.round(level * (1 + 0.1 * (((t * 37) % 21) - 10) / 10)));
+  const amp = Math.max(0.1 * level, 2 * Math.sqrt(level));
+  return Array.from({ length: hours }, (_, t) => Math.max(0, Math.round(level + (amp * (((t * 37) % 21) - 10)) / 10)));
 }
 
 /** Soma uma onda de viral: sobe em `rise` horas até `extra` views acima da base e decai com meia-vida `halfLife`. */

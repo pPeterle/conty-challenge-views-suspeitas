@@ -5,6 +5,7 @@ export type Label = "legitimo" | "suspeito" | "inconclusivo";
 
 export type Rule =
   | "sinal_disparou"
+  | "queda_isolada"
   | "cauda_nao_observavel"
   | "cauda_zona_cinza"
   | "volume_baixo"
@@ -28,7 +29,10 @@ export function firedSignals(m: Measurements, thr: FiringThresholds): Fired {
   const p = PARAMS.periodic;
   return {
     pico_sem_cauda:
-      m.peak.status === "measured" && m.peak.tail < thr.peak_tail && m.peak.width <= PARAMS.peak.maxBlockWidth,
+      m.peak.status === "measured" &&
+      m.peak.tail < thr.peak_tail &&
+      m.peak.width <= PARAMS.peak.maxBlockWidth &&
+      m.peak.rise < PARAMS.peak.maxRise,
     queda_abrupta: m.drop !== null && m.drop.value >= thr.drop,
     repeticao_mecanica: m.mechanical !== null && m.mechanical.dispersion < thr.mechanical_dispersion,
     rajadas_periodicas:
@@ -39,13 +43,13 @@ export function firedSignals(m: Measurements, thr: FiringThresholds): Fired {
   };
 }
 
+export function isRegularPlateau(m: Measurements): boolean {
+  return m.drop !== null && m.drop.plateauDispersion < PARAMS.drop.regularPlateau;
+}
+
+/** Pico relevante sem cauda que não chega a disparar (subida gradual, bloco largo) ou com cauda curta. */
 export function isGrayPeak(m: Measurements, thr: FiringThresholds): boolean {
-  return (
-    m.peak.status === "measured" &&
-    m.peak.tail >= thr.peak_tail &&
-    m.peak.tail < PARAMS.peak.tailGray &&
-    m.peak.width <= PARAMS.peak.maxBlockWidth
-  );
+  return m.peak.status === "measured" && m.peak.tail < PARAMS.peak.tailGray && !firedSignals(m, thr).pico_sem_cauda;
 }
 
 /**
@@ -55,7 +59,13 @@ export function isGrayPeak(m: Measurements, thr: FiringThresholds): boolean {
 export function decide(m: Measurements, thr: FiringThresholds, peakViews: number): Decision {
   const fired = firedSignals(m, thr);
   const make = (label: Label, rule: Rule): Decision => ({ label, rule, fired });
-  if (Object.values(fired).some(Boolean)) return make("suspeito", "sinal_disparou");
+  if (Object.values(fired).some(Boolean)) {
+    // Queda abrupta sozinha também acontece com gente de verdade (live que termina, post que sai do destaque,
+    // viral cortado). Só acusa se outro sinal disparou junto ou se o patamar antes era regular demais.
+    const onlyDrop = fired.queda_abrupta && !fired.pico_sem_cauda && !fired.repeticao_mecanica && !fired.rajadas_periodicas;
+    if (onlyDrop && !isRegularPlateau(m)) return make("inconclusivo", "queda_isolada");
+    return make("suspeito", "sinal_disparou");
+  }
   if (m.peak.status === "unobservable") return make("inconclusivo", "cauda_nao_observavel");
   if (isGrayPeak(m, thr)) return make("inconclusivo", "cauda_zona_cinza");
   if (m.base < PARAMS.lowVolume.maxMedian && peakViews < PARAMS.lowVolume.maxPeak) return make("inconclusivo", "volume_baixo");
