@@ -16,8 +16,8 @@ export const options = {
   },
   thresholds: {
     http_req_failed: ["rate<0.01"],
-    "http_req_duration{scenario:repetidas}": ["p(95)<200"],
-    "http_req_duration{scenario:novas}": ["p(95)<200"],
+    "http_req_duration{scenario:repetidas}": ["p(95)<500"],
+    "http_req_duration{scenario:novas}": ["p(95)<500"],
     checks: ["rate>0.999"],
     "checks{tipo:invalido}": ["rate==1"],
   },

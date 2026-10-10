@@ -248,17 +248,17 @@ classificarem a mesma série ao mesmo tempo produzem a mesma resposta, e o banco
 40 séries e 20 VUs mandando posts novos, com 10% de payloads inválidos de propósito (que precisam voltar 4xx no
 formato de erro). No fim, `scripts/verify-load.ts` lê o banco e falha se houver mais de uma linha por série
 repetida, algum payload inválido gravado ou resposta diferente da função pura. Resultado nesta máquina
-(macOS, k6 em Docker, dividida com outros processos durante a rodada), detalhes em
+(macOS, k6 em Docker, 2026-10-10), detalhes em
 [docs/carga.md](docs/carga.md):
 
 ```
-✓ checks.........................: 100.00% 331556 out of 331556
-✓ { tipo:invalido }............: 100.00% 5524 out of 5524
-✓ { scenario:novas }...........: avg=21.26ms med=18.13ms p(90)=32.79ms p(95)=38.03ms
-✓ { scenario:repetidas }.......: avg=21.66ms med=18.27ms p(90)=33.79ms p(95)=38.73ms
-✓ http_req_failed................: 0.00%   0 out of 96866
-http_reqs......................: 96866   3226.712626/s
-verificação ok: 25232 classificações gravadas (40 séries repetidas, uma linha cada; 25192 posts novos, nenhum payload inválido), todas iguais à função pura, API devolvendo o mesmo texto
+✓ checks.........................: 100.00% 381902 out of 381902
+✓ { tipo:invalido }............: 100.00% 6440 out of 6440
+✓ { scenario:novas }...........: avg=18.79ms med=16.36ms p(90)=28.99ms p(95)=32.93ms
+✓ { scenario:repetidas }.......: avg=18.76ms med=16.41ms p(90)=29.22ms p(95)=33.06ms
+✓ http_req_failed................: 0.00%   0 out of 111314
+http_reqs......................: 111314  3708.235697/s
+verificação ok: 28497 classificações gravadas (40 séries repetidas, uma linha cada; 28457 posts novos, nenhum payload inválido), todas iguais à função pura, API devolvendo o mesmo texto
 ```
 
 ## Onde cada exigência está
