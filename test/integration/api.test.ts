@@ -2,7 +2,8 @@ import { serve } from "@hono/node-server";
 import type { AddressInfo } from "node:net";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../../src/app.ts";
-import { CALIBRATED } from "../../src/classifier/thresholds.ts";
+import { readFileSync } from "node:fs";
+import { CALIBRATED, CLASSIFIER_VERSION } from "../../src/classifier/thresholds.ts";
 import { FixedClock } from "../../src/clock.ts";
 import { listClassifications, openDb, type Db } from "../../src/db.ts";
 import { steady, withBoughtPeak, withOrganicPeak } from "../series.ts";
@@ -186,5 +187,30 @@ describe("servidor HTTP real", () => {
     } finally {
       server.close();
     }
+  });
+});
+
+describe("GET /criteria", () => {
+  it("devolve versão, limiares calibrados e o que o critério não detecta", async () => {
+    const res = await app.request("/criteria");
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.classifier_version).toBe(CLASSIFIER_VERSION);
+    expect(json.thresholds).toEqual(CALIBRATED);
+    expect(json.signals.map((s: { threshold: number }) => s.threshold)).toEqual([
+      CALIBRATED.peak_tail,
+      CALIBRATED.drop,
+      CALIBRATED.mechanical_dispersion,
+      CALIBRATED.periodic_fraction,
+    ]);
+    expect(json.not_detected.length).toBeGreaterThan(5);
+  });
+
+  it("a lista do que não detecta tem os mesmos itens de docs/criterio.md", async () => {
+    const doc = readFileSync(new URL("../../docs/criterio.md", import.meta.url), "utf8");
+    const section = doc.slice(doc.indexOf("## O que o critério NÃO detecta"), doc.indexOf("## Dataset sintético"));
+    const docTitles = [...section.matchAll(/^- \*\*([^*]+?)\.?\*\*/gm)].map((m) => m[1].replace(/\.$/, ""));
+    const { not_detected } = await (await app.request("/criteria")).json();
+    expect(not_detected.map((n: { title: string }) => n.title)).toEqual(docTitles);
   });
 });

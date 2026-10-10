@@ -6,6 +6,7 @@ import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import type { ZodError, ZodSchema } from "zod";
 import { classify } from "./classifier/classify.ts";
+import { criteriaDocument } from "./classifier/criteria.ts";
 import { CLASSIFIER_VERSION } from "./classifier/thresholds.ts";
 import type { Clock } from "./clock.ts";
 import { type Db, findClassification, saveClassification } from "./db.ts";
@@ -73,6 +74,7 @@ export function createApp({ db, clock }: AppDeps): Hono {
   const app = new Hono();
 
   app.get("/health", (c) => c.json({ ok: true, classifier_version: CLASSIFIER_VERSION }));
+  app.get("/criteria", (c) => c.json(criteriaDocument()));
 
   app.post(
     "/classify",
