@@ -2,33 +2,33 @@
   "avaliacao": {
     "classifier_version": "1.0.0",
     "seed": 2002,
-    "dataset_sha256": "76da2b80d9e37b0e89f22cb55a12266fa6650aa4b785d3f05a99a2d78b5120e3",
+    "dataset_sha256": "f873aa556fd89a3a7e90a5e79b1f6f262cec2e2640030e73c3722f82cb908e39",
     "thresholds": {
-      "peak_tail": 0.3,
+      "peak_tail": 0.2,
       "drop": 0.9,
       "mechanical_dispersion": 0.2,
       "periodic_fraction": 1
     },
-    "total": 620,
-    "legit_total": 440,
-    "suspicious_total": 180,
-    "false_positive_rate": 0.025,
-    "recall": 0.5777777777777777,
-    "precision": 0.9043478260869565,
+    "total": 670,
+    "legit_total": 465,
+    "suspicious_total": 205,
+    "false_positive_rate": 0.017204301075268817,
+    "recall": 0.5658536585365853,
+    "precision": 0.9354838709677419,
     "inconclusive_rate": {
-      "legitimo": 0.2909090909090909,
-      "suspeito": 0.17777777777777778
+      "legitimo": 0.2817204301075269,
+      "suspeito": 0.16097560975609757
     },
     "confusion": {
       "legitimo": {
-        "legitimo": 301,
-        "suspeito": 11,
-        "inconclusivo": 128
+        "legitimo": 326,
+        "suspeito": 8,
+        "inconclusivo": 131
       },
       "suspeito": {
-        "legitimo": 44,
-        "suspeito": 104,
-        "inconclusivo": 32
+        "legitimo": 56,
+        "suspeito": 116,
+        "inconclusivo": 33
       }
     },
     "by_scenario": {
@@ -85,8 +85,8 @@
         "hard": true,
         "total": 40,
         "legitimo": 16,
-        "suspeito": 3,
-        "inconclusivo": 21
+        "suspeito": 2,
+        "inconclusivo": 22
       },
       "ciclo_diario_forte": {
         "label": "legitimo",
@@ -101,8 +101,8 @@
         "hard": true,
         "total": 25,
         "legitimo": 1,
-        "suspeito": 8,
-        "inconclusivo": 16
+        "suspeito": 6,
+        "inconclusivo": 18
       },
       "destaque_plataforma": {
         "label": "legitimo",
@@ -128,6 +128,14 @@
         "suspeito": 0,
         "inconclusivo": 1
       },
+      "dois_virais": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 25,
+        "suspeito": 0,
+        "inconclusivo": 0
+      },
       "serie_curta_legitima": {
         "label": "legitimo",
         "hard": true,
@@ -141,8 +149,8 @@
         "hard": false,
         "total": 30,
         "legitimo": 0,
-        "suspeito": 30,
-        "inconclusivo": 0
+        "suspeito": 29,
+        "inconclusivo": 1
       },
       "plato_mecanico": {
         "label": "suspeito",
@@ -176,6 +184,14 @@
         "suspeito": 15,
         "inconclusivo": 5
       },
+      "compra_na_semana_do_viral": {
+        "label": "suspeito",
+        "hard": true,
+        "total": 25,
+        "legitimo": 12,
+        "suspeito": 13,
+        "inconclusivo": 0
+      },
       "compra_imitando_organico": {
         "label": "suspeito",
         "hard": true,
@@ -195,20 +211,17 @@
     },
     "false_positives": [
       "criador_pequeno_ruidoso-001",
-      "criador_pequeno_ruidoso-005",
       "criador_pequeno_ruidoso-009",
-      "live_fim_seco-001",
       "live_fim_seco-002",
       "live_fim_seco-006",
       "live_fim_seco-014",
       "live_fim_seco-015",
       "live_fim_seco-018",
-      "live_fim_seco-019",
-      "live_fim_seco-024"
+      "live_fim_seco-019"
     ],
     "legit_margins": {
       "pico_sem_cauda": {
-        "threshold": 0.3,
+        "threshold": 0.2,
         "fires_when": "below",
         "closest": 0,
         "sample": "live_fim_seco-002"
@@ -236,33 +249,33 @@
   "calibracao": {
     "classifier_version": "1.0.0",
     "seed": 1001,
-    "dataset_sha256": "7db7ad2944b5bdfcc2493024c92abbe758a0114b4de4bb0714fa593add2b52c5",
+    "dataset_sha256": "1e262db65d23f8da6826da729dabdab29e30e0d3d130c1416687bf597f58fc5b",
     "thresholds": {
-      "peak_tail": 0.3,
+      "peak_tail": 0.2,
       "drop": 0.9,
       "mechanical_dispersion": 0.2,
       "periodic_fraction": 1
     },
-    "total": 620,
-    "legit_total": 440,
-    "suspicious_total": 180,
-    "false_positive_rate": 0.01818181818181818,
-    "recall": 0.5555555555555556,
-    "precision": 0.9259259259259259,
+    "total": 670,
+    "legit_total": 465,
+    "suspicious_total": 205,
+    "false_positive_rate": 0.008602150537634409,
+    "recall": 0.5121951219512195,
+    "precision": 0.963302752293578,
     "inconclusive_rate": {
-      "legitimo": 0.2772727272727273,
-      "suspeito": 0.2
+      "legitimo": 0.2709677419354839,
+      "suspeito": 0.1902439024390244
     },
     "confusion": {
       "legitimo": {
-        "legitimo": 310,
-        "suspeito": 8,
-        "inconclusivo": 122
+        "legitimo": 335,
+        "suspeito": 4,
+        "inconclusivo": 126
       },
       "suspeito": {
-        "legitimo": 44,
-        "suspeito": 100,
-        "inconclusivo": 36
+        "legitimo": 61,
+        "suspeito": 105,
+        "inconclusivo": 39
       }
     },
     "by_scenario": {
@@ -319,8 +332,8 @@
         "hard": true,
         "total": 40,
         "legitimo": 13,
-        "suspeito": 3,
-        "inconclusivo": 24
+        "suspeito": 0,
+        "inconclusivo": 27
       },
       "ciclo_diario_forte": {
         "label": "legitimo",
@@ -335,8 +348,8 @@
         "hard": true,
         "total": 25,
         "legitimo": 1,
-        "suspeito": 5,
-        "inconclusivo": 19
+        "suspeito": 4,
+        "inconclusivo": 20
       },
       "destaque_plataforma": {
         "label": "legitimo",
@@ -362,6 +375,14 @@
         "suspeito": 0,
         "inconclusivo": 1
       },
+      "dois_virais": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 25,
+        "suspeito": 0,
+        "inconclusivo": 0
+      },
       "serie_curta_legitima": {
         "label": "legitimo",
         "hard": true,
@@ -375,8 +396,8 @@
         "hard": false,
         "total": 30,
         "legitimo": 0,
-        "suspeito": 30,
-        "inconclusivo": 0
+        "suspeito": 27,
+        "inconclusivo": 3
       },
       "plato_mecanico": {
         "label": "suspeito",
@@ -410,6 +431,14 @@
         "suspeito": 10,
         "inconclusivo": 10
       },
+      "compra_na_semana_do_viral": {
+        "label": "suspeito",
+        "hard": true,
+        "total": 25,
+        "legitimo": 17,
+        "suspeito": 8,
+        "inconclusivo": 0
+      },
       "compra_imitando_organico": {
         "label": "suspeito",
         "hard": true,
@@ -428,18 +457,14 @@
       }
     },
     "false_positives": [
-      "criador_pequeno_ruidoso-020",
-      "criador_pequeno_ruidoso-031",
-      "criador_pequeno_ruidoso-038",
       "live_fim_seco-002",
       "live_fim_seco-016",
       "live_fim_seco-017",
-      "live_fim_seco-019",
-      "live_fim_seco-025"
+      "live_fim_seco-019"
     ],
     "legit_margins": {
       "pico_sem_cauda": {
-        "threshold": 0.3,
+        "threshold": 0.2,
         "fires_when": "below",
         "closest": 0,
         "sample": "live_fim_seco-023"
@@ -469,41 +494,41 @@
       {
         "calibration_seed": 1001,
         "evaluation_seed": 2002,
-        "false_positive_rate": 0.025,
-        "recall": 0.5777777777777777
+        "false_positive_rate": 0.017204301075268817,
+        "recall": 0.5658536585365853
       },
       {
         "calibration_seed": 1101,
         "evaluation_seed": 2102,
-        "false_positive_rate": 0.025,
-        "recall": 0.5777777777777777
+        "false_positive_rate": 0.015053763440860216,
+        "recall": 0.5609756097560976
       },
       {
         "calibration_seed": 1201,
         "evaluation_seed": 2202,
-        "false_positive_rate": 0.022727272727272728,
-        "recall": 0.5277777777777778
+        "false_positive_rate": 0.021505376344086023,
+        "recall": 0.47804878048780486
       },
       {
         "calibration_seed": 1301,
         "evaluation_seed": 2302,
-        "false_positive_rate": 0.01818181818181818,
-        "recall": 0.5722222222222222
+        "false_positive_rate": 0.017204301075268817,
+        "recall": 0.5317073170731708
       },
       {
         "calibration_seed": 1401,
         "evaluation_seed": 2402,
-        "false_positive_rate": 0.015909090909090907,
-        "recall": 0.5666666666666667
+        "false_positive_rate": 0.01935483870967742,
+        "recall": 0.551219512195122
       }
     ],
     "false_positive_rate": {
-      "min": 0.015909090909090907,
-      "max": 0.025
+      "min": 0.015053763440860216,
+      "max": 0.021505376344086023
     },
     "recall": {
-      "min": 0.5277777777777778,
-      "max": 0.5777777777777777
+      "min": 0.47804878048780486,
+      "max": 0.5658536585365853
     }
   }
 }

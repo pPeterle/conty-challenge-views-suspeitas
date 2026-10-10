@@ -36,16 +36,16 @@ Os valores usados na versão inicial, escolhidos à mão antes de existir calibr
 como.
 
 <!-- thresholds:start -->
-Gerado por `npm run calibrate` na partição de calibração (semente 1001). Regra: maximizar recall com falso positivo <= 2% na partição de calibração. 875 combinações testadas, 385 dentro da meta.
+Gerado por `npm run calibrate` na partição de calibração (semente 1001). Regra: maximizar recall com falso positivo <= 2% na partição de calibração. 875 combinações testadas, 280 dentro da meta.
 
 | sinal | dispara quando o valor fica | limiar escolhido | candidatos |
 |---|---|---|---|
-| pico_sem_cauda | abaixo de | 0,3 | 0,1; 0,2; 0,3; 0,4; 0,5 |
+| pico_sem_cauda | abaixo de | 0,2 | 0,1; 0,2; 0,3; 0,4; 0,5 |
 | queda_abrupta | igual ou acima de | 0,9 | 0,9; 0,85; 0,8; 0,75; 0,7; 0,65; 0,6 |
 | repeticao_mecanica | abaixo de | 0,2 | 0,05; 0,1; 0,2; 0,3; 0,5 |
 | rajadas_periodicas | igual ou acima de | 1 | 1; 0,9; 0,8; 0,7; 0,6 |
 
-Na calibração: falso positivo 1,82%, recall 55,56%.
+Na calibração: falso positivo 0,86%, recall 51,22%.
 <!-- thresholds:end -->
 
 ## Sinais
@@ -56,7 +56,12 @@ A ideia: views compradas chegam num degrau de 1 a 3 horas, de nada para o pico n
 que estoura de verdade é compartilhado, entra em recomendação e continua recebendo views por muitas horas,
 com decaimento gradual.
 
-1. `p` é a hora de maior `x`. O excesso do pico é `x[p] - base`.
+1. Todos os picos relevantes são examinados, não só o maior: o maior pico da série e até 10 outros máximos
+   locais, do maior para o menor, que não estejam dentro do bloco de um pico já examinado. Uma compra pequena
+   na mesma semana de um viral real não é o maior pico, e antes passava. O sinal dispara se qualquer um deles
+   tiver o formato abaixo, e o motivo diz qual foi. Para o maior pico, `base` é a mediana da série; para os
+   outros, é o maior entre a mediana e o nível logo antes do pico (mediana das horas `p-8` a `p-3`), porque o
+   pico pode estar em cima da cauda de um viral. O excesso do pico é `x[p] - base`.
 2. O pico só conta se for relevante: `x[p] >= 5 × max(base, 1)` e excesso `>= 100` views. Sem pico relevante,
    o sinal não é avaliado.
 3. O "bloco do pico" são as horas contíguas a `p` cujo excesso é pelo menos 50% do excesso do pico.
@@ -187,8 +192,9 @@ observar. Há um teste para isso (`test/unit/classify.test.ts`) e um exemplo no 
 - **Queda abrupta de patamar com ruído de gente.** Por ser o formato de live, destaque e viral cortado, sozinha
   ela dá `inconclusivo`. O robô que entrega um patamar com ruído realista e para de uma vez não é acusado.
 - **Pico comprado no fim da série.** Cai em `inconclusivo` até haver horas suficientes depois.
-- **Mais de um pico.** Só o maior pico é examinado por `pico_sem_cauda`. Um pico comprado menor que um viral
-  orgânico no mesmo post passa.
+- **Compra pequena perto do nível do momento.** Picos secundários são examinados, mas só contam se passarem de
+  5 vezes o nível logo antes deles. Um lote de 8 vezes a audiência normal, entregue ainda na cauda de um viral,
+  fica abaixo disso e passa.
 - **Contas pequenas.** Com mediana abaixo de 5 views/h, nenhuma hora com 100 views ou mais e nenhum sinal
   disparado, o resultado é `inconclusivo` (regra 4). Criador pequeno com ruído muito alto e sem
   correlação entre horas ainda gera alguns falsos positivos: uma hora de sorte sem nada depois tem o formato

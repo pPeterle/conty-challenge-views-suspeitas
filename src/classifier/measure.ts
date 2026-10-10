@@ -1,6 +1,22 @@
 import { mean, median, variance } from "./stats.ts";
 import { PARAMS } from "./thresholds.ts";
 
+export type MeasuredPeak = {
+  status: "measured";
+  /** Linha de base usada para este pico (a mediana da série, ou o nível logo antes dele nos picos secundários). */
+  base: number;
+  hour: number;
+  views: number;
+  ratio: number;
+  width: number;
+  rise: number;
+  tail: number;
+};
+export type PeakAnalysis =
+  | { status: "none"; base: number; hour: number; views: number }
+  | { status: "unobservable"; base: number; hour: number; views: number; ratio: number; width: number; rise: number; hoursAfter: number }
+  | MeasuredPeak;
+
 /**
  * Medidas da série que não dependem dos limiares de disparo. Calcular uma vez e decidir com vários limiares é
  * o que deixa a calibração rápida, e garante que calibração e API usam exatamente a mesma decisão.
@@ -8,10 +24,10 @@ import { PARAMS } from "./thresholds.ts";
 export interface Measurements {
   hours: number;
   base: number;
-  peak:
-    | { status: "none"; hour: number; views: number }
-    | { status: "unobservable"; hour: number; views: number; ratio: number; width: number; rise: number; hoursAfter: number }
-    | { status: "measured"; hour: number; views: number; ratio: number; width: number; rise: number; tail: number };
+  /** O maior pico da série. É ele que decide zona cinza e cauda não observável. */
+  peak: PeakAnalysis;
+  /** Outros picos relevantes (até PARAMS.peak.maxExtraPeaks), do maior para o menor, já com cauda medida. */
+  otherPeaks: MeasuredPeak[];
   drop: {
     hour: number;
     value: number;
@@ -26,13 +42,14 @@ export interface Measurements {
   periodic: { bursts: number; firstBurst: number; period: number | null; fraction: number | null };
 }
 
-function measurePeak(x: readonly number[], base: number): Measurements["peak"] {
+const isRelevantPeak = (v: number, base: number): boolean =>
+  v >= PARAMS.peak.minRatioToBase * Math.max(base, 1) && v - base >= PARAMS.peak.minExcess;
+
+/** Analisa o pico na hora p: bloco, subida e cauda. Devolve também o bloco, para não analisar o mesmo pico duas vezes. */
+function analyzePeak(x: readonly number[], base: number, p: number): { analysis: PeakAnalysis; lo: number; hi: number } {
   const t = PARAMS.peak;
-  const safeBase = Math.max(base, 1);
-  let p = 0;
-  for (let i = 1; i < x.length; i++) if (x[i] > x[p]) p = i;
   const excess = x[p] - base;
-  if (x[p] < t.minRatioToBase * safeBase || excess < t.minExcess) return { status: "none", hour: p, views: x[p] };
+  if (!isRelevantPeak(x[p], base)) return { analysis: { status: "none", base, hour: p, views: x[p] }, lo: p, hi: p };
 
   let lo = p;
   let hi = p;
@@ -43,13 +60,42 @@ function measurePeak(x: readonly number[], base: number): Measurements["peak"] {
   // de 0); viral e destaque sobem aos poucos.
   let riseSum = 0;
   for (let i = Math.max(0, lo - t.riseHours); i < lo; i++) riseSum += Math.max(0, x[i] - base);
-  const common = { hour: p, views: x[p], ratio: x[p] / safeBase, width: hi - lo + 1, rise: riseSum / excess };
+  const common = { base, hour: p, views: x[p], ratio: x[p] / Math.max(base, 1), width: hi - lo + 1, rise: riseSum / excess };
   const hoursAfter = x.length - 1 - hi;
-  if (hoursAfter < t.tailHours) return { status: "unobservable", ...common, hoursAfter };
+  if (hoursAfter < t.tailHours) return { analysis: { status: "unobservable", ...common, hoursAfter }, lo, hi };
 
   let tailSum = 0;
   for (let i = hi + 1; i <= hi + t.tailHours; i++) tailSum += Math.max(0, x[i] - base);
-  return { status: "measured", ...common, tail: tailSum / excess };
+  return { analysis: { status: "measured", ...common, tail: tailSum / excess }, lo, hi };
+}
+
+/**
+ * O maior pico e os outros picos relevantes. Uma compra pequena na mesma semana de um viral real não é o maior
+ * pico da série, e por isso todos os picos relevantes são examinados, não só o maior.
+ */
+function measurePeaks(x: readonly number[], base: number): Pick<Measurements, "peak" | "otherPeaks"> {
+  let top = 0;
+  for (let i = 1; i < x.length; i++) if (x[i] > x[top]) top = i;
+  const first = analyzePeak(x, base, top);
+  const covered: Array<[number, number]> = [[first.lo, first.hi]];
+  const candidates: number[] = [];
+  for (let i = 0; i < x.length; i++) {
+    const isLocalMax = (i === 0 || x[i] >= x[i - 1]) && (i === x.length - 1 || x[i] > x[i + 1]);
+    if (i !== top && isLocalMax && isRelevantPeak(x[i], base)) candidates.push(i);
+  }
+  candidates.sort((a, b) => x[b] - x[a] || a - b);
+  const otherPeaks: MeasuredPeak[] = [];
+  for (const p of candidates) {
+    if (otherPeaks.length >= PARAMS.peak.maxExtraPeaks) break;
+    if (covered.some(([lo, hi]) => p >= lo && p <= hi)) continue;
+    // Pico secundário pode estar em cima da cauda de um viral: compara com o nível logo antes dele.
+    const before = x.slice(Math.max(0, p - 8), Math.max(0, p - 2));
+    const localBase = Math.max(base, before.length > 0 ? median(before) : base);
+    const { analysis, lo, hi } = analyzePeak(x, localBase, p);
+    covered.push([lo, hi]);
+    if (analysis.status === "measured") otherPeaks.push(analysis);
+  }
+  return { peak: first.analysis, otherPeaks };
 }
 
 /** Queda sustentada na hora i (1 - mediana depois / mediana antes), ou null se não há janela completa. */
@@ -131,7 +177,7 @@ export function measure(x: readonly number[]): Measurements {
   return {
     hours: x.length,
     base,
-    peak: measurePeak(x, base),
+    ...measurePeaks(x, base),
     drop: measureDrop(x),
     mechanical: measureMechanical(x),
     periodic: measurePeriodic(x),

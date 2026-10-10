@@ -44,6 +44,27 @@ describe("pico orgânico x pico comprado", () => {
   });
 });
 
+describe("todos os picos são julgados", () => {
+  it("compra pequena na semana de um viral real acusa, mesmo não sendo o maior pico", () => {
+    const viral = withOrganicPeak(steady(168, 100), 30, 6000, 4, 8);
+    const series = withBoughtPeak(viral, 130, 1200);
+    expect(Math.max(...series)).toBeGreaterThan(series[130]);
+    const result = classify(series);
+    expect(result.classification).toBe("suspeito");
+    const peak = signal(result, "pico_sem_cauda");
+    expect(peak.fired).toBe(true);
+    expect(peak.detail).toContain("Na hora 130");
+    expect(peak.detail).toContain("Não é o maior pico da série");
+  });
+
+  it("dois virais reais na mesma série continuam legítimos", () => {
+    const series = withOrganicPeak(withOrganicPeak(steady(168, 100), 30, 6000, 4, 8), 120, 2000, 3, 6);
+    const result = classify(series);
+    expect(result.classification).toBe("legitimo");
+    expect(signal(result, "pico_sem_cauda").detail).toContain("Examinei");
+  });
+});
+
 describe("prefere não acusar", () => {
   it("pico enorme nas últimas horas da série fica inconclusivo: ainda não dá para ver a cauda", () => {
     const series = withBoughtPeak(steady(72, 100), 69, 8000);

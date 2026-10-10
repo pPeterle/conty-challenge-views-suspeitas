@@ -13,7 +13,7 @@ export const NOT_DETECTED: Array<{ title: string; summary: string }> = [
   { title: "Live curta", summary: "Live de 2 ou 3 horas que começa e termina de uma vez tem o formato de lote comprado e vira suspeito." },
   { title: "Queda abrupta de patamar com ruído de gente", summary: "Sozinha dá inconclusivo; robô com patamar realista que para de uma vez não é acusado." },
   { title: "Pico comprado no fim da série", summary: "Fica inconclusivo até haver 10 horas depois do pico." },
-  { title: "Mais de um pico", summary: "Só o maior pico é examinado; um pico comprado menor que um viral passa." },
+  { title: "Compra pequena perto do nível do momento", summary: "Pico secundário só conta acima de 5 vezes o nível logo antes dele; lote pequeno na cauda de um viral passa." },
   { title: "Contas pequenas", summary: "Volume muito baixo dá inconclusivo; ruído alto ainda gera alguns falsos positivos por pico_sem_cauda." },
   { title: "Causas legítimas de queda abrupta", summary: "Post apagado, privado ou retirado de recomendação também cai de uma vez; suspeito quer dizer revisão humana." },
   { title: "Corte que coincide com a noite", summary: "Queda que se repete no mesmo horário do dia anterior ou seguinte é ignorada, mesmo se for robô." },
@@ -35,7 +35,7 @@ export function criteriaDocument() {
     },
     params: PARAMS,
     signals: [
-      { name: "pico_sem_cauda", fires_when: "below", threshold: CALIBRATED.peak_tail, measures: "fração das views extras do pico que ainda aparece nas 10 horas depois dele, em pico de até 3 horas que chega de uma vez" },
+      { name: "pico_sem_cauda", fires_when: "below", threshold: CALIBRATED.peak_tail, measures: "fração das views extras do pico que ainda aparece nas 10 horas depois dele, em pico de até 3 horas que chega de uma vez; vale para qualquer pico relevante, não só o maior" },
       { name: "queda_abrupta", fires_when: "at_or_above", threshold: CALIBRATED.drop, measures: "maior queda de uma hora para outra que se sustenta, fora a que se repete no mesmo horário do dia vizinho" },
       { name: "repeticao_mecanica", fires_when: "below", threshold: CALIBRATED.mechanical_dispersion, measures: "menor índice de dispersão (variância / média) em janelas de 12 horas" },
       { name: "rajadas_periodicas", fires_when: "at_or_above", threshold: CALIBRATED.periodic_fraction, measures: "fração dos intervalos entre rajadas exatamente iguais, com intervalo de 2 a 12 horas" },

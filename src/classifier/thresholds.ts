@@ -34,6 +34,8 @@ export const PARAMS = {
     /** Subida abaixo disto (fração do excesso do pico) é degrau: de nada para o pico numa hora. */
     maxRise: 0.15,
     tailGray: 0.8,
+    /** Quantos picos além do maior são examinados (os maiores primeiro). */
+    maxExtraPeaks: 10,
   },
   drop: {
     windowBefore: 6,

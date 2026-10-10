@@ -64,19 +64,19 @@ As regras valem nesta ordem, e a primeira que bate decide:
 ## Resultado no dataset
 
 <!-- metrics:start -->
-Gerado por `npm run evaluate` na partição de **avaliação** (semente 2002, 620 séries, sha256 `76da2b80d9e3`), com os limiares calibrados na outra partição. Classificador 1.0.0.
+Gerado por `npm run evaluate` na partição de **avaliação** (semente 2002, 670 séries, sha256 `f873aa556fd8`), com os limiares calibrados na outra partição. Classificador 1.0.0.
 
-- Taxa de falso positivo: <!-- fpr -->2,50%<!-- /fpr --> (11 de 440 legítimos classificados como suspeito)
-- Recall: 57,78% (104 de 180 suspeitos detectados)
-- Precisão: 90,43%
-- Inconclusivo: 29,09% dos legítimos e 17,78% dos suspeitos
-- Para comparar, na partição de calibração (semente 1001): falso positivo 1,82%, recall 55,56%
-- Estabilidade em 5 pares de sementes (calibra em uma, mede na outra): falso positivo de 1,59% a 2,50% e recall de 52,78% a 57,78%. Faixa exigida pelo teste: falso positivo até 5,00% e recall de 45,00% a 75,00%.
+- Taxa de falso positivo: <!-- fpr -->1,72%<!-- /fpr --> (8 de 465 legítimos classificados como suspeito)
+- Recall: 56,59% (116 de 205 suspeitos detectados)
+- Precisão: 93,55%
+- Inconclusivo: 28,17% dos legítimos e 16,10% dos suspeitos
+- Para comparar, na partição de calibração (semente 1001): falso positivo 0,86%, recall 51,22%
+- Estabilidade em 5 pares de sementes (calibra em uma, mede na outra): falso positivo de 1,51% a 2,15% e recall de 47,80% a 56,59%. Faixa exigida pelo teste: falso positivo até 5,00% e recall de 45,00% a 75,00%.
 
 | verdadeiro \ previsto | legitimo | suspeito | inconclusivo |
 |---|---|---|---|
-| legitimo | 301 | 11 | 128 |
-| suspeito | 44 | 104 | 32 |
+| legitimo | 326 | 8 | 131 |
+| suspeito | 56 | 116 | 33 |
 
 | cenário | rótulo | séries | legitimo | suspeito | inconclusivo |
 |---|---|---|---|---|---|
@@ -86,28 +86,30 @@ Gerado por `npm run evaluate` na partição de **avaliação** (semente 2002, 62
 | criador_pequeno | legitimo | 40 | 25 | 0 | 15 |
 | viral_relampago (difícil) | legitimo | 30 | 29 | 0 | 1 |
 | viral_subida_rapida (difícil) | legitimo | 30 | 30 | 0 | 0 |
-| criador_pequeno_ruidoso (difícil) | legitimo | 40 | 16 | 3 | 21 |
+| criador_pequeno_ruidoso (difícil) | legitimo | 40 | 16 | 2 | 22 |
 | ciclo_diario_forte (difícil) | legitimo | 30 | 17 | 0 | 13 |
-| live_fim_seco (difícil) | legitimo | 25 | 1 | 8 | 16 |
+| live_fim_seco (difícil) | legitimo | 25 | 1 | 6 | 18 |
 | destaque_plataforma (difícil) | legitimo | 25 | 7 | 0 | 18 |
 | viral_cortado (difícil) | legitimo | 25 | 2 | 0 | 23 |
 | degrau_permanente (difícil) | legitimo | 25 | 24 | 0 | 1 |
+| dois_virais (difícil) | legitimo | 25 | 25 | 0 | 0 |
 | serie_curta_legitima (difícil) | legitimo | 20 | 0 | 0 | 20 |
-| pico_comprado | suspeito | 30 | 0 | 30 | 0 |
+| pico_comprado | suspeito | 30 | 0 | 29 | 1 |
 | plato_mecanico | suspeito | 30 | 0 | 29 | 1 |
 | queda_abrupta | suspeito | 30 | 4 | 0 | 26 |
 | bot_periodico | suspeito | 30 | 0 | 30 | 0 |
 | serie_curta_comprada (difícil) | suspeito | 20 | 0 | 15 | 5 |
+| compra_na_semana_do_viral (difícil) | suspeito | 25 | 12 | 13 | 0 |
 | compra_imitando_organico (difícil) | suspeito | 20 | 20 | 0 | 0 |
 | compra_gradual (difícil) | suspeito | 20 | 20 | 0 | 0 |
 
-Falsos positivos na avaliação: criador_pequeno_ruidoso-001, criador_pequeno_ruidoso-005, criador_pequeno_ruidoso-009, live_fim_seco-001, live_fim_seco-002, live_fim_seco-006, live_fim_seco-014, live_fim_seco-015, live_fim_seco-018, live_fim_seco-019, live_fim_seco-024.
+Falsos positivos na avaliação: criador_pequeno_ruidoso-001, criador_pequeno_ruidoso-009, live_fim_seco-002, live_fim_seco-006, live_fim_seco-014, live_fim_seco-015, live_fim_seco-018, live_fim_seco-019.
 
 Folga dos limiares: valor medido na série legítima que chegou mais perto de disparar cada sinal. Valor do lado de disparo quer dizer que o sinal disparou nessa série, o que não implica `suspeito` (queda abrupta isolada vira `inconclusivo`). Em rajadas_periodicas o valor só conta com intervalo de 2 a 12 horas; valor alto com intervalo de 24 horas (ciclo diário) não dispara.
 
 | sinal | dispara quando | limiar | legítimo mais próximo | série |
 |---|---|---|---|---|
-| pico_sem_cauda | abaixo | 0,300 | 0,000 | live_fim_seco-002 |
+| pico_sem_cauda | abaixo | 0,200 | 0,000 | live_fim_seco-002 |
 | queda_abrupta | igual ou acima | 0,900 | 0,969 | viral_cortado-006 |
 | repeticao_mecanica | abaixo | 0,200 | 0,243 | criador_pequeno-002 |
 | rajadas_periodicas | igual ou acima | 1,000 | 1,000 | ciclo_diario_forte-028 |

@@ -1,4 +1,4 @@
-import type { Fired } from "./decide.ts";
+import { type Fired, firingPeak } from "./decide.ts";
 import { fmtDec, fmtInt, fmtPct, fmtRate, fmtRatio, plural } from "./format.ts";
 import type { Measurements } from "./measure.ts";
 import { round4 } from "./stats.ts";
@@ -40,7 +40,8 @@ export function buildSignals(m: Measurements, thr: FiringThresholds, fired: Fire
 
 function peakSignal(m: Measurements, thr: FiringThresholds, fired: boolean): Signal {
   const t = PARAMS.peak;
-  const pk = m.peak;
+  // Quando dispara, descreve o pico que disparou, que pode não ser o maior da série.
+  const pk = (fired ? firingPeak(m, thr) : null) ?? m.peak;
   const base = { name: "pico_sem_cauda" as const, threshold: thr.peak_tail, fires_when: "below" as const, fired };
   if (pk.status === "none") {
     return {
@@ -53,9 +54,17 @@ function peakSignal(m: Measurements, thr: FiringThresholds, fired: boolean): Sig
         `${t.minExcess} views acima dela.`,
     };
   }
+  const notTheBiggest =
+    pk !== m.peak
+      ? ` Não é o maior pico da série: o maior, na hora ${m.peak.hour}, teve ${fmtInt(m.peak.views)} views e não ` +
+        `tem o formato de lote.`
+      : "";
+  const examined = 1 + m.otherPeaks.length;
   const peakText =
     `Na hora ${pk.hour} o post teve ${fmtInt(pk.views)} views, ${fmtRatio(pk.ratio)} vezes a linha de base de ` +
-    `${fmtRate(m.base)}, num pico de ${plural(pk.width, "hora", "horas")}.`;
+    `${fmtRate(pk.base)}${pk === m.peak ? "" : " (o nível logo antes dele)"}, num pico de ` +
+    `${plural(pk.width, "hora", "horas")}.${notTheBiggest}` +
+    (examined > 1 && pk === m.peak && !fired ? ` Examinei ${examined} picos relevantes; nenhum tem formato de lote.` : "");
   if (pk.status === "unobservable") {
     return {
       ...base,

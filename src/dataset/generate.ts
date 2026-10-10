@@ -165,6 +165,17 @@ const generators = {
     return humanViews(rng, expected, rng.uniform(0.15, 0.3));
   },
 
+  // Dois virais reais na mesma série: o segundo pico não é o maior e tem cauda própria.
+  dois_virais(rng, n) {
+    const expected = viralCurve(rng, n, [2, 6], [4, 12]);
+    const base = expected[0];
+    const second = rng.int(Math.min(n - 30, Math.floor(n / 2)), n - 30);
+    const height = base * rng.uniform(5, 15);
+    const halfLife = rng.uniform(4, 12);
+    for (let t = second; t < n; t++) expected[t] += height * Math.min(1, (t - second + 1) / 3) * 2 ** (-(t - second) / halfLife);
+    return humanViews(rng, expected, rng.uniform(0.1, 0.3));
+  },
+
   // Viral real que decola quase de uma hora para outra (ex.: compartilhado por uma conta grande).
   viral_subida_rapida(rng, n) {
     return humanViews(rng, viralCurve(rng, n, [0.3, 1], [3, 12]), rng.uniform(0.1, 0.3));
@@ -229,6 +240,19 @@ const generators = {
     return views;
   },
 
+  // Compra pequena na mesma semana de um viral real: o lote não é o maior pico da série.
+  compra_na_semana_do_viral(rng, n) {
+    const expected = viralCurve(rng, n, [2, 6], [4, 12]);
+    const base = expected[0];
+    const views = humanViews(rng, expected, rng.uniform(0.1, 0.3));
+    const peak = expected.indexOf(Math.max(...expected));
+    const width = rng.int(1, 3);
+    const start = rng.int(Math.min(peak + 36, n - 14 - width), n - 14 - width);
+    const bought = base * rng.uniform(8, 15);
+    for (let t = start; t < start + width; t++) views[t] += Math.round(bought * rng.uniform(0.85, 1.15));
+    return views;
+  },
+
   // Caso que o critério não pega, de propósito: pouca audiência real e um lote comprado entregue com a forma
   // de um viral (subida, decaimento exponencial, ruído). Serve para o número de recall mostrar esse limite.
   compra_imitando_organico(rng, n) {
@@ -259,12 +283,14 @@ export const SCENARIOS: Record<Scenario, ScenarioSpec> = {
   destaque_plataforma: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
   viral_cortado: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
   degrau_permanente: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
+  dois_virais: { label: "legitimo", count: 25, hours: [96, 168], hard: true },
   serie_curta_legitima: { label: "legitimo", count: 20, hours: [24, 47], hard: true },
   pico_comprado: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
   plato_mecanico: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
   queda_abrupta: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
   bot_periodico: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
   serie_curta_comprada: { label: "suspeito", count: 20, hours: [24, 47], hard: true },
+  compra_na_semana_do_viral: { label: "suspeito", count: 25, hours: [96, 168], hard: true },
   compra_imitando_organico: { label: "suspeito", count: 20, hours: [72, 168], hard: true },
   compra_gradual: { label: "suspeito", count: 20, hours: [72, 168], hard: true },
 };

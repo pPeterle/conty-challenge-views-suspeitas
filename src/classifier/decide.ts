@@ -1,4 +1,4 @@
-import type { Measurements } from "./measure.ts";
+import type { Measurements, MeasuredPeak, PeakAnalysis } from "./measure.ts";
 import { type FiringThresholds, PARAMS } from "./thresholds.ts";
 
 export type Label = "legitimo" | "suspeito" | "inconclusivo";
@@ -28,11 +28,7 @@ export interface Decision {
 export function firedSignals(m: Measurements, thr: FiringThresholds): Fired {
   const p = PARAMS.periodic;
   return {
-    pico_sem_cauda:
-      m.peak.status === "measured" &&
-      m.peak.tail < thr.peak_tail &&
-      m.peak.width <= PARAMS.peak.maxBlockWidth &&
-      m.peak.rise < PARAMS.peak.maxRise,
+    pico_sem_cauda: firingPeak(m, thr) !== null,
     queda_abrupta: m.drop !== null && m.drop.value >= thr.drop,
     repeticao_mecanica: m.mechanical !== null && m.mechanical.dispersion < thr.mechanical_dispersion,
     rajadas_periodicas:
@@ -41,6 +37,17 @@ export function firedSignals(m: Measurements, thr: FiringThresholds): Fired {
       m.periodic.period <= p.maxPeriod &&
       (m.periodic.fraction ?? 0) >= thr.periodic_fraction,
   };
+}
+
+const peakFires = (p: PeakAnalysis, thr: FiringThresholds): p is MeasuredPeak =>
+  p.status === "measured" &&
+  p.tail < thr.peak_tail &&
+  p.width <= PARAMS.peak.maxBlockWidth &&
+  p.rise < PARAMS.peak.maxRise;
+
+/** O primeiro pico (o maior, depois os outros do maior para o menor) que tem formato de lote comprado. */
+export function firingPeak(m: Measurements, thr: FiringThresholds): MeasuredPeak | null {
+  return [m.peak, ...m.otherPeaks].find((p): p is MeasuredPeak => peakFires(p, thr)) ?? null;
 }
 
 export function isRegularPlateau(m: Measurements): boolean {
