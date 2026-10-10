@@ -2,22 +2,22 @@
   "avaliacao": {
     "classifier_version": "1.0.0",
     "seed": 2002,
-    "dataset_sha256": "d730b36a7f2f35d99b81863997d45d493020768f563b48551bdca4921ae97f76",
+    "dataset_sha256": "31c35493faad125c5c687aeaa109b28ecccbe7f91ffda9ee48d2951ad9e90d9e",
     "thresholds": {
       "peak_tail": 0.2,
       "drop": 0.9,
       "mechanical_dispersion": 0.2,
-      "periodic_fraction": 1
+      "periodic_fraction": 0.8
     },
-    "total": 720,
+    "total": 745,
     "legit_total": 490,
-    "suspicious_total": 230,
+    "suspicious_total": 255,
     "false_positive_rate": 0.0163265306122449,
-    "recall": 0.6130434782608696,
-    "precision": 0.9463087248322147,
+    "recall": 0.6509803921568628,
+    "precision": 0.9540229885057471,
     "inconclusive_rate": {
       "legitimo": 0.2673469387755102,
-      "suspeito": 0.14347826086956522
+      "suspeito": 0.12941176470588237
     },
     "confusion": {
       "legitimo": {
@@ -27,7 +27,7 @@
       },
       "suspeito": {
         "legitimo": 56,
-        "suspeito": 141,
+        "suspeito": 166,
         "inconclusivo": 33
       }
     },
@@ -208,6 +208,14 @@
         "suspeito": 25,
         "inconclusivo": 0
       },
+      "bot_periodico_jitter": {
+        "label": "suspeito",
+        "hard": true,
+        "total": 25,
+        "legitimo": 0,
+        "suspeito": 25,
+        "inconclusivo": 0
+      },
       "compra_imitando_organico": {
         "label": "suspeito",
         "hard": true,
@@ -261,7 +269,7 @@
         "sample": "degrau_permanente-021"
       },
       "rajadas_periodicas": {
-        "threshold": 1,
+        "threshold": 0.8,
         "fires_when": "at_or_above",
         "closest": 1,
         "sample": "ciclo_diario_forte-028"
@@ -271,22 +279,22 @@
   "calibracao": {
     "classifier_version": "1.0.0",
     "seed": 1001,
-    "dataset_sha256": "daf00a564136f0e546082a0cfef1183f8ede7ecc04322cdd80b8afbeacbd1a8d",
+    "dataset_sha256": "35eae2870c7797f204c9821cd3633dea0b60db1ed9075221858e79df01cf4a33",
     "thresholds": {
       "peak_tail": 0.2,
       "drop": 0.9,
       "mechanical_dispersion": 0.2,
-      "periodic_fraction": 1
+      "periodic_fraction": 0.8
     },
-    "total": 720,
+    "total": 745,
     "legit_total": 490,
-    "suspicious_total": 230,
+    "suspicious_total": 255,
     "false_positive_rate": 0.00816326530612245,
-    "recall": 0.5652173913043478,
-    "precision": 0.9701492537313433,
+    "recall": 0.6078431372549019,
+    "precision": 0.9748427672955975,
     "inconclusive_rate": {
       "legitimo": 0.2571428571428571,
-      "suspeito": 0.16956521739130434
+      "suspeito": 0.15294117647058825
     },
     "confusion": {
       "legitimo": {
@@ -296,7 +304,7 @@
       },
       "suspeito": {
         "legitimo": 61,
-        "suspeito": 130,
+        "suspeito": 155,
         "inconclusivo": 39
       }
     },
@@ -477,6 +485,14 @@
         "suspeito": 25,
         "inconclusivo": 0
       },
+      "bot_periodico_jitter": {
+        "label": "suspeito",
+        "hard": true,
+        "total": 25,
+        "legitimo": 0,
+        "suspeito": 25,
+        "inconclusivo": 0
+      },
       "compra_imitando_organico": {
         "label": "suspeito",
         "hard": true,
@@ -526,7 +542,7 @@
         "sample": "viral_organico-047"
       },
       "rajadas_periodicas": {
-        "threshold": 1,
+        "threshold": 0.8,
         "fires_when": "at_or_above",
         "closest": 0.8571,
         "sample": "ciclo_diario_forte-029"
@@ -539,31 +555,31 @@
         "calibration_seed": 1001,
         "evaluation_seed": 2002,
         "false_positive_rate": 0.0163265306122449,
-        "recall": 0.6130434782608696
+        "recall": 0.6509803921568628
       },
       {
         "calibration_seed": 1101,
         "evaluation_seed": 2102,
         "false_positive_rate": 0.014285714285714285,
-        "recall": 0.6086956521739131
+        "recall": 0.6470588235294118
       },
       {
         "calibration_seed": 1201,
         "evaluation_seed": 2202,
         "false_positive_rate": 0.02040816326530612,
-        "recall": 0.5347826086956522
+        "recall": 0.5803921568627451
       },
       {
         "calibration_seed": 1301,
         "evaluation_seed": 2302,
         "false_positive_rate": 0.0163265306122449,
-        "recall": 0.5826086956521739
+        "recall": 0.6235294117647059
       },
       {
         "calibration_seed": 1401,
         "evaluation_seed": 2402,
         "false_positive_rate": 0.018367346938775512,
-        "recall": 0.6
+        "recall": 0.6392156862745098
       }
     ],
     "false_positive_rate": {
@@ -571,8 +587,8 @@
       "max": 0.02040816326530612
     },
     "recall": {
-      "min": 0.5347826086956522,
-      "max": 0.6130434782608696
+      "min": 0.5803921568627451,
+      "max": 0.6509803921568628
     }
   }
 }

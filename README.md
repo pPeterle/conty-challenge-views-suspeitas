@@ -64,19 +64,19 @@ As regras valem nesta ordem, e a primeira que bate decide:
 ## Resultado no dataset
 
 <!-- metrics:start -->
-Gerado por `npm run evaluate` na partição de **avaliação** (semente 2002, 720 séries, sha256 `d730b36a7f2f`), com os limiares calibrados na outra partição. Classificador 1.0.0.
+Gerado por `npm run evaluate` na partição de **avaliação** (semente 2002, 745 séries, sha256 `31c35493faad`), com os limiares calibrados na outra partição. Classificador 1.0.0.
 
 - Taxa de falso positivo: <!-- fpr -->1,63%<!-- /fpr --> (8 de 490 legítimos classificados como suspeito)
-- Recall: 61,30% (141 de 230 suspeitos detectados)
-- Precisão: 94,63%
-- Inconclusivo: 26,73% dos legítimos e 14,35% dos suspeitos
-- Para comparar, na partição de calibração (semente 1001): falso positivo 0,82%, recall 56,52%
-- Estabilidade em 5 pares de sementes (calibra em uma, mede na outra): falso positivo de 1,43% a 2,04% e recall de 53,48% a 61,30%. Faixa exigida pelo teste: falso positivo até 5,00% e recall de 45,00% a 75,00%.
+- Recall: 65,10% (166 de 255 suspeitos detectados)
+- Precisão: 95,40%
+- Inconclusivo: 26,73% dos legítimos e 12,94% dos suspeitos
+- Para comparar, na partição de calibração (semente 1001): falso positivo 0,82%, recall 60,78%
+- Estabilidade em 5 pares de sementes (calibra em uma, mede na outra): falso positivo de 1,43% a 2,04% e recall de 58,04% a 65,10%. Faixa exigida pelo teste: falso positivo até 5,00% e recall de 45,00% a 75,00%.
 
 | verdadeiro \ previsto | legitimo | suspeito | inconclusivo |
 |---|---|---|---|
 | legitimo | 351 | 8 | 131 |
-| suspeito | 56 | 141 | 33 |
+| suspeito | 56 | 166 | 33 |
 
 | cenário | rótulo | séries | legitimo | suspeito | inconclusivo |
 |---|---|---|---|---|---|
@@ -102,6 +102,7 @@ Gerado por `npm run evaluate` na partição de **avaliação** (semente 2002, 72
 | serie_curta_comprada (difícil) | suspeito | 20 | 0 | 15 | 5 |
 | compra_na_semana_do_viral (difícil) | suspeito | 25 | 12 | 13 | 0 |
 | plato_ruido_pequeno (difícil) | suspeito | 25 | 0 | 25 | 0 |
+| bot_periodico_jitter (difícil) | suspeito | 25 | 0 | 25 | 0 |
 | compra_imitando_organico (difícil) | suspeito | 20 | 20 | 0 | 0 |
 | compra_gradual (difícil) | suspeito | 20 | 20 | 0 | 0 |
 
@@ -115,7 +116,7 @@ Folga dos limiares: valor medido na série legítima que chegou mais perto de di
 | queda_abrupta | igual ou acima | 0,900 | 0,969 | viral_cortado-006 |
 | repeticao_mecanica | abaixo | 0,200 | 0,243 | criador_pequeno-002 |
 | patamar_liso | abaixo | 0,040 | 0,070 | degrau_permanente-021 |
-| rajadas_periodicas | igual ou acima | 1,000 | 1,000 | ciclo_diario_forte-028 |
+| rajadas_periodicas | igual ou acima | 0,800 | 1,000 | ciclo_diario_forte-028 |
 <!-- metrics:end -->
 
 O teste `test/integration/readme-metrics.test.ts` gera as partições de novo, mede e falha se o número entre

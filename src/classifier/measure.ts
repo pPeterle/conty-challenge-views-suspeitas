@@ -184,7 +184,22 @@ function measurePeriodic(x: readonly number[]): Measurements["periodic"] {
     const current = counts.get(period) ?? 0;
     if (c > current || (c === current && iv < period)) period = iv;
   }
-  return { bursts: starts.length, firstBurst: starts[0], period, fraction: (counts.get(period) ?? 0) / intervals.length };
+  // Intervalo de referência entre 2 e 12 horas que mais intervalos aceitam com folga de ±1 hora: robô agendado
+  // também atrasa ou adianta uma hora. Empate: mais intervalos exatos, depois o menor.
+  const tol = t.tolerance;
+  let best: { k: number; within: number; exact: number } | null = null;
+  for (let k = t.minPeriod; k <= t.maxPeriod; k++) {
+    const within = intervals.filter((iv) => Math.abs(iv - k) <= tol).length;
+    const exact = counts.get(k) ?? 0;
+    if (within > 0 && (best === null || within > best.within || (within === best.within && exact > best.exact))) {
+      best = { k, within, exact };
+    }
+  }
+  if (best === null) {
+    // Nenhum intervalo na faixa: informa o mais comum (ex.: 24 horas, o ciclo diário), que não dispara.
+    return { bursts: starts.length, firstBurst: starts[0], period, fraction: (counts.get(period) ?? 0) / intervals.length };
+  }
+  return { bursts: starts.length, firstBurst: starts[0], period: best.k, fraction: best.within / intervals.length };
 }
 
 export function measure(x: readonly number[]): Measurements {

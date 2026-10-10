@@ -258,6 +258,18 @@ const generators = {
     return views;
   },
 
+  // Robô agendado que atrasa ou adianta uma hora de vez em quando.
+  bot_periodico_jitter(rng, n) {
+    const base = logUniform(rng, 10, 100);
+    const views = humanViews(rng, dailyAudience(rng, n, base, [0.2, 0.5]), rng.uniform(0.1, 0.3));
+    const period = rng.int(4, 8);
+    const burst = base * rng.uniform(8, 20);
+    for (let t = rng.int(0, period - 1); t < n; t += period + rng.int(-1, 1)) {
+      views[t] += Math.round(burst * rng.uniform(0.9, 1.1));
+    }
+    return views;
+  },
+
   // Compra pequena na mesma semana de um viral real: o lote não é o maior pico da série.
   compra_na_semana_do_viral(rng, n) {
     const expected = viralCurve(rng, n, [2, 6], [4, 12]);
@@ -311,6 +323,7 @@ export const SCENARIOS: Record<Scenario, ScenarioSpec> = {
   serie_curta_comprada: { label: "suspeito", count: 20, hours: [24, 47], hard: true },
   compra_na_semana_do_viral: { label: "suspeito", count: 25, hours: [96, 168], hard: true },
   plato_ruido_pequeno: { label: "suspeito", count: 25, hours: [72, 168], hard: true },
+  bot_periodico_jitter: { label: "suspeito", count: 25, hours: [72, 168], hard: true },
   compra_imitando_organico: { label: "suspeito", count: 20, hours: [72, 168], hard: true },
   compra_gradual: { label: "suspeito", count: 20, hours: [72, 168], hard: true },
 };

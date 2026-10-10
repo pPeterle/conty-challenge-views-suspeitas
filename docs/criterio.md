@@ -43,9 +43,9 @@ Gerado por `npm run calibrate` na partição de calibração (semente 1001). Reg
 | pico_sem_cauda | abaixo de | 0,2 | 0,1; 0,2; 0,3; 0,4; 0,5 |
 | queda_abrupta | igual ou acima de | 0,9 | 0,9; 0,85; 0,8; 0,75; 0,7; 0,65; 0,6 |
 | repeticao_mecanica | abaixo de | 0,2 | 0,05; 0,1; 0,2; 0,3; 0,5 |
-| rajadas_periodicas | igual ou acima de | 1 | 1; 0,9; 0,8; 0,7; 0,6 |
+| rajadas_periodicas | igual ou acima de | 0,8 | 1; 0,9; 0,8; 0,7; 0,6 |
 
-Na calibração: falso positivo 0,82%, recall 56,52%.
+Na calibração: falso positivo 0,82%, recall 60,78%.
 <!-- thresholds:end -->
 
 ## Sinais
@@ -117,15 +117,19 @@ inflam a variância, então o erro aqui tende a ser deixar passar, não acusar.
 
 ### 4. `rajadas_periodicas`: rajadas em intervalo fixo
 
-Robô agendado entrega um lote a cada `k` horas.
+Robô agendado entrega um lote a cada `k` horas, às vezes uma hora antes ou depois.
 
 1. Linha de base local: mediana de `x` nas 12 horas antes e depois de cada hora.
 2. Rajada: hora com `x >= 3 × base local` e `x - base local >= 50`. Horas de rajada coladas contam como uma.
-3. Com pelo menos 4 rajadas, calcula os intervalos entre inícios consecutivos e o intervalo mais comum `k`.
-4. Valor: fração dos intervalos exatamente iguais a `k`.
+3. Com pelo menos 4 rajadas, calcula os intervalos entre inícios consecutivos.
+4. Para cada `k` de 2 a 12 horas, conta os intervalos a até 1 hora de `k`. Fica o `k` que aceita mais
+   intervalos (empate: o com mais intervalos exatos).
+5. Valor: fração dos intervalos aceitos por esse `k`.
 
-Dispara se o valor é igual ou maior que o limiar calibrado e `k` está entre 2 e 12 horas. Periodicidade de 24 horas é ignorada de propósito:
-é o ciclo dia/noite de gente de verdade.
+Dispara se o valor é igual ou maior que o limiar calibrado. Periodicidade de 24 horas fica fora de propósito:
+é o ciclo dia/noite de gente de verdade. A folga de ±1 hora pegou o robô com atraso ocasional sem custo no
+ciclo dia/noite forte do dataset; o custo possível está em criador com rajadas casuais, que a calibração
+mede.
 
 ### 5. `patamar_liso`: nível alto que quase não varia
 
@@ -197,9 +201,8 @@ observar. Há um teste para isso (`test/unit/classify.test.ts`) e um exemplo no 
 - **Patamar com ruído.** Um robô que adiciona variação aleatória na escala de uma Poisson escapa de
   `repeticao_mecanica`, e um com mais de 4% de variação relativa escapa de `patamar_liso`. O mesmo vale para
   patamar artificial somado a muita audiência real, ou que não chega a 3 vezes a mediana da série.
-- **Rajadas com intervalo irregular**, periódicas a cada 24 horas, ou tão frequentes (a cada 2 horas) que viram
-  a própria linha de base local. Com o limiar calibrado de periodicidade, basta um intervalo fora do padrão
-  para o sinal não disparar.
+- **Rajadas com intervalo irregular**, que variam mais de 1 hora, periódicas a cada 24 horas ou tão frequentes
+  (a cada 2 horas) que viram a própria linha de base local.
 - **Live curta.** Uma transmissão de 2 ou 3 horas que começa e termina de uma vez tem o mesmo formato de um
   lote comprado (degrau sem cauda) e vira `suspeito`. É a maior fonte de falso positivo no dataset. Distinguir
   exigiria saber que houve live, que não está na série.

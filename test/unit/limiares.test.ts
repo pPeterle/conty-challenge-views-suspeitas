@@ -115,10 +115,27 @@ describe("parâmetro fixo de patamar_liso", () => {
   });
 });
 
+describe("parâmetro fixo de rajadas_periodicas (folga)", () => {
+  /** Rajadas de 800 sobre base 50, com intervalos dados. */
+  function withIntervals(intervals: number[]): number[] {
+    const starts = intervals.reduce<number[]>((acc, iv) => [...acc, acc[acc.length - 1] + iv], [12]);
+    const views = Array.from({ length: starts[starts.length - 1] + 24 }, () => 50);
+    for (const s of starts) views[s] += 800;
+    return views;
+  }
+  it(`intervalo de 6 com desvio de ${PARAMS.periodic.tolerance} hora conta, com desvio de ${PARAMS.periodic.tolerance + 1} não`, () => {
+    const d = PARAMS.periodic.tolerance;
+    const within = withIntervals(Array.from({ length: 20 }, (_, i) => 6 + (i % 2 === 0 ? d : -d)));
+    const outside = withIntervals(Array.from({ length: 20 }, (_, i) => 6 + (i % 2 === 0 ? d + 1 : -(d + 1))));
+    expect(sig(within, "rajadas_periodicas").fired).toBe(true);
+    expect(sig(outside, "rajadas_periodicas").fired).toBe(false);
+  });
+});
+
 describe("limiar de rajadas_periodicas", () => {
-  /** 20 intervalos entre rajadas de 800 sobre base 50: `equal` de 6 horas, o resto de 7. */
+  /** 20 intervalos entre rajadas de 800 sobre base 50: `equal` de 6 horas, o resto de 9 (fora da folga de ±1). */
   function bursts(equal: number): number[] {
-    const intervals = [...Array(equal).fill(6), ...Array(20 - equal).fill(7)];
+    const intervals = [...Array(equal).fill(6), ...Array(20 - equal).fill(9)];
     const starts = intervals.reduce<number[]>((acc, iv) => [...acc, acc[acc.length - 1] + iv], [12]);
     const views = Array.from({ length: starts[starts.length - 1] + 24 }, () => 50);
     for (const s of starts) views[s] += 800;

@@ -9,12 +9,12 @@
     "peak_tail": 0.2,
     "drop": 0.9,
     "mechanical_dispersion": 0.2,
-    "periodic_fraction": 1
+    "periodic_fraction": 0.8
   },
   "calibration": {
     "false_positive_rate": 0.00816326530612245,
-    "recall": 0.5652173913043478,
+    "recall": 0.6078431372549019,
     "false_positives": 4,
-    "true_positives": 130
+    "true_positives": 155
   }
 }

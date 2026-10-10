@@ -208,16 +208,17 @@ function periodicSignal(m: Measurements, thr: FiringThresholds, fired: boolean):
   let detail: string;
   if (fired) {
     detail =
-      `${bursts} de views, e ${fmtPct(pr.fraction)} dos intervalos entre elas foram de exatamente ${period} ` +
-      `(a partir da hora ${pr.firstBurst}). Pessoas não chegam num relógio; entrega agendada chega.`;
+      `${bursts} de views, e ${fmtPct(pr.fraction)} dos intervalos entre elas ficaram a até ` +
+      `${plural(t.tolerance, "hora", "horas")} de ${period} (a partir da hora ${pr.firstBurst}). Pessoas não chegam ` +
+      `num relógio; entrega agendada chega, mesmo atrasando ou adiantando um pouco.`;
   } else if (pr.period < t.minPeriod || pr.period > t.maxPeriod) {
     detail =
       `${bursts}, intervalo mais comum de ${period}. Fora da faixa de ${t.minPeriod} a ${t.maxPeriod} horas ` +
       `(24 horas é o ciclo dia/noite normal).`;
   } else {
     detail =
-      `${bursts}, mas só ${fmtPct(pr.fraction)} dos intervalos se repetem (dispara a partir de ` +
-      `${fmtPct(thr.periodic_fraction)}): sem relógio fixo.`;
+      `${bursts}, mas só ${fmtPct(pr.fraction)} dos intervalos ficaram a até ${plural(t.tolerance, "hora", "horas")} ` +
+      `de ${period} (dispara a partir de ${fmtPct(thr.periodic_fraction)}): sem relógio fixo.`;
   }
   return { ...base, value: round4(pr.fraction), evaluated: true, detail };
 }

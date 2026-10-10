@@ -58,7 +58,16 @@ export const PARAMS = {
    * do índice de dispersão. Exigir que o patamar destoe do resto da série é o que poupa canal grande e liso.
    */
   smooth: { window: 12, maxCv: 0.04, minMean: 200, minRatioToMedian: 3 },
-  periodic: { localWindow: 12, burstRatio: 3, burstMinExcess: 50, minBursts: 4, minPeriod: 2, maxPeriod: 12 },
+  periodic: {
+    localWindow: 12,
+    burstRatio: 3,
+    burstMinExcess: 50,
+    minBursts: 4,
+    minPeriod: 2,
+    maxPeriod: 12,
+    /** Folga, em horas, para um intervalo contar como igual ao de referência. */
+    tolerance: 1,
+  },
 } as const;
 
 export const CALIBRATED: FiringThresholds = calibrated.thresholds;

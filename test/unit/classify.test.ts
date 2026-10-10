@@ -168,7 +168,7 @@ describe("casos óbvios", () => {
     const periodic = signal(result, "rajadas_periodicas");
     expect(periodic.fired).toBe(true);
     expect(periodic.value).toBe(1);
-    expect(result.reason).toContain("exatamente 6 horas");
+    expect(result.reason).toContain("ficaram a até 1 hora de 6 horas");
   });
 
   it("decaimento natural depois da publicação é legítimo", () => {
