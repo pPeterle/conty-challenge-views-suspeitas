@@ -46,6 +46,7 @@ describe("POST /classify", () => {
       "queda_abrupta",
       "repeticao_mecanica",
       "patamar_liso",
+      "fora_do_ritmo",
       "rajadas_periodicas",
     ]);
     const peak = json.signals[0];
@@ -203,6 +204,7 @@ describe("GET /criteria", () => {
       CALIBRATED.drop,
       CALIBRATED.mechanical_dispersion,
       PARAMS.smooth.maxCv,
+      PARAMS.rhythm.maxEventLevel,
       CALIBRATED.periodic_fraction,
     ]);
     expect(json.not_detected.length).toBeGreaterThan(5);

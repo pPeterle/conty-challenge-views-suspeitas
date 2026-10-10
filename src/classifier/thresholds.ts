@@ -58,6 +58,13 @@ export const PARAMS = {
    * do índice de dispersão. Exigir que o patamar destoe do resto da série é o que poupa canal grande e liso.
    */
   smooth: { window: 12, maxCv: 0.04, minMean: 200, minRatioToMedian: 3 },
+  /**
+   * Ritmo dia/noite aprendido da própria série: perfil por hora do dia (mediana entre os dias). As 8 horas mais
+   * fortes do perfil são o "dia". Só vale com 48 horas ou mais e ciclo claro (as 8 horas mais fracas com no
+   * máximo metade das views do dia). Um evento está fora do ritmo quando, nas horas em que aconteceu, a
+   * audiência real costuma ter no máximo 60% do nível do dia.
+   */
+  rhythm: { minHours: 48, phaseHours: 8, maxNightToDay: 0.5, maxEventLevel: 0.6, maxEventHours: 24 },
   periodic: {
     localWindow: 12,
     burstRatio: 3,

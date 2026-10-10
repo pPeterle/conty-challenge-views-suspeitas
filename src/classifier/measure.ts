@@ -6,6 +6,8 @@ export type MeasuredPeak = {
   /** Linha de base usada para este pico (a mediana da série, ou o nível logo antes dele nos picos secundários). */
   base: number;
   hour: number;
+  /** Primeira hora do bloco do pico. */
+  start: number;
   views: number;
   ratio: number;
   width: number;
@@ -14,7 +16,7 @@ export type MeasuredPeak = {
 };
 export type PeakAnalysis =
   | { status: "none"; base: number; hour: number; views: number }
-  | { status: "unobservable"; base: number; hour: number; views: number; ratio: number; width: number; rise: number; hoursAfter: number }
+  | { status: "unobservable"; base: number; hour: number; start: number; views: number; ratio: number; width: number; rise: number; hoursAfter: number }
   | MeasuredPeak;
 
 /**
@@ -39,6 +41,21 @@ export interface Measurements {
     plateauDispersion: number;
   } | null;
   mechanical: { start: number; dispersion: number; mean: number; sample: number[] } | null;
+  /**
+   * Ritmo dia/noite aprendido da série. `null` quando não há 48 horas. As frações dizem quanto do patamar antes da
+   * queda e do bloco do maior pico caiu na noite aprendida.
+   */
+  rhythm: {
+    clear: boolean;
+    /** Nível das 8 horas mais fracas do perfil sobre o das 8 mais fortes. */
+    nightToDay: number;
+    /** Hora do perfil (contada da publicação, de 0 a 23) com menos views. */
+    weakestPhase: number;
+    /** Nível típico da audiência nas horas do patamar antes da queda, como fração do nível do dia. */
+    dropEventLevel: number | null;
+    /** O mesmo para o bloco do maior pico. */
+    peakEventLevel: number | null;
+  } | null;
   /** Janela de patamar mais lisa entre as que destoam do resto da série; null se nenhuma destoa. */
   smooth: { start: number; cv: number; mean: number } | null;
   periodic: { bursts: number; firstBurst: number; period: number | null; fraction: number | null };
@@ -62,7 +79,7 @@ function analyzePeak(x: readonly number[], base: number, p: number): { analysis:
   // de 0); viral e destaque sobem aos poucos.
   let riseSum = 0;
   for (let i = Math.max(0, lo - t.riseHours); i < lo; i++) riseSum += Math.max(0, x[i] - base);
-  const common = { base, hour: p, views: x[p], ratio: x[p] / Math.max(base, 1), width: hi - lo + 1, rise: riseSum / excess };
+  const common = { base, hour: p, start: lo, views: x[p], ratio: x[p] / Math.max(base, 1), width: hi - lo + 1, rise: riseSum / excess };
   const hoursAfter = x.length - 1 - hi;
   if (hoursAfter < t.tailHours) return { analysis: { status: "unobservable", ...common, hoursAfter }, lo, hi };
 
@@ -165,6 +182,33 @@ function measureSmooth(x: readonly number[], base: number): Measurements["smooth
   return best;
 }
 
+function measureRhythm(x: readonly number[], m: Pick<Measurements, "drop" | "peak">): Measurements["rhythm"] {
+  const t = PARAMS.rhythm;
+  if (x.length < t.minHours) return null;
+  const days = Math.floor(x.length / 24);
+  // Mediana entre os dias: um evento numa noite só não muda o perfil.
+  const profile = Array.from({ length: 24 }, (_, ph) => median(Array.from({ length: days }, (_, d) => x[d * 24 + ph])));
+  const order = [...profile.keys()].sort((a, b) => profile[a] - profile[b] || a - b);
+  const avg = (phs: number[]) => mean(phs.map((ph) => profile[ph]));
+  const dayLevel = Math.max(avg(order.slice(-t.phaseHours)), 1);
+  const nightToDay = avg(order.slice(0, t.phaseHours)) / dayLevel;
+  const level = (hours: number[]) => (hours.length === 0 ? null : avg(hours.map((h) => h % 24)) / dayLevel);
+
+  let dropEventLevel: number | null = null;
+  if (m.drop !== null) {
+    // Patamar antes da queda: horas coladas antes dela com pelo menos metade do nível do patamar.
+    const hours: number[] = [];
+    for (let h = m.drop.hour - 1; h >= 0 && hours.length < t.maxEventHours && x[h] >= 0.5 * m.drop.before; h--) hours.push(h);
+    dropEventLevel = level(hours);
+  }
+  let peakEventLevel: number | null = null;
+  if (m.peak.status !== "none") {
+    const { start, width } = m.peak;
+    peakEventLevel = level(Array.from({ length: width }, (_, i) => start + i));
+  }
+  return { clear: nightToDay <= t.maxNightToDay, nightToDay, weakestPhase: order[0], dropEventLevel, peakEventLevel };
+}
+
 function measurePeriodic(x: readonly number[]): Measurements["periodic"] {
   const t = PARAMS.periodic;
   const starts: number[] = [];
@@ -204,13 +248,16 @@ function measurePeriodic(x: readonly number[]): Measurements["periodic"] {
 
 export function measure(x: readonly number[]): Measurements {
   const base = median(x);
+  const peaks = measurePeaks(x, base);
+  const drop = measureDrop(x);
   return {
     hours: x.length,
     base,
-    ...measurePeaks(x, base),
-    drop: measureDrop(x),
+    ...peaks,
+    drop,
     mechanical: measureMechanical(x),
     smooth: measureSmooth(x, base),
+    rhythm: measureRhythm(x, { drop, peak: peaks.peak }),
     periodic: measurePeriodic(x),
   };
 }

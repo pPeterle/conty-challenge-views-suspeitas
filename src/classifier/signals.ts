@@ -25,6 +25,7 @@ export function buildSignals(m: Measurements, thr: FiringThresholds, fired: Fire
     dropSignal(m, thr, fired.queda_abrupta),
     mechanicalSignal(m, thr, fired.repeticao_mecanica),
     smoothSignal(m, fired.patamar_liso),
+    rhythmSignal(m, fired.fora_do_ritmo),
     periodicSignal(m, thr, fired.rajadas_periodicas),
   ];
   // Ordem fixa dos campos no JSON, para a resposta ler de cima para baixo.
@@ -182,6 +183,36 @@ function smoothSignal(m: Measurements, fired: boolean): Signal {
     : `O patamar mais liso acima do resto da série (horas ${w.start} a ${end}, ${fmtRate(w.mean)}) variou ` +
       `${fmtPctDec(w.cv)}, como audiência real (dispara abaixo de ${fmtPct(t.maxCv)}).`;
   return { ...base, value: round4(w.cv), evaluated: true, detail };
+}
+
+function rhythmSignal(m: Measurements, fired: boolean): Signal {
+  const t = PARAMS.rhythm;
+  const r = m.rhythm;
+  const base = { name: "fora_do_ritmo" as const, threshold: t.maxEventLevel, fires_when: "below" as const, fired };
+  if (r === null || !r.clear) {
+    return {
+      ...base,
+      value: null,
+      evaluated: false,
+      detail:
+        r === null
+          ? `Não avaliado: com menos de ${t.minHours} horas não dá para aprender o ritmo dia/noite da audiência.`
+          : `Não avaliado: a série não tem ciclo dia/noite claro (as horas fracas têm ${fmtPct(r.nightToDay)} das ` +
+            `views das fortes), como acontece com público em vários fusos.`,
+    };
+  }
+  const levels = [r.dropEventLevel, r.peakEventLevel].filter((v): v is number => v !== null);
+  const value = levels.length > 0 ? Math.min(...levels) : null;
+  const rhythm =
+    `A audiência deste post tem ritmo claro: nas horas mais fracas do dia (a mais fraca é a ${r.weakestPhase}ª ` +
+    `hora de cada dia desde a publicação) ela tem ${fmtPct(r.nightToDay)} das views das horas fortes.`;
+  const detail = fired
+    ? `${rhythm} O evento que levantou suspeita aconteceu em horas em que o público real costuma estar em ` +
+      `${fmtPct(value ?? 0)} do nível do dia. Sozinho isso não acusa; junto com a queda ou o pico sem cauda, são ` +
+      `views chegando quando o público real não está.`
+    : `${rhythm} Nenhum evento de queda ou pico de cauda curta aconteceu em horas fracas` +
+      `${value === null ? "." : ` (o mais perto ficou em ${fmtPct(value)} do nível do dia; conta a partir de ${fmtPct(t.maxEventLevel)} ou menos).`}`;
+  return { ...base, value: value === null ? null : round4(value), evaluated: true, detail };
 }
 
 function periodicSignal(m: Measurements, thr: FiringThresholds, fired: boolean): Signal {

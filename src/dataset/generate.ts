@@ -127,7 +127,9 @@ const generators = {
   live_fim_seco(rng, n) {
     const base = logUniform(rng, 20, 200);
     const expected = dailyAudience(rng, n, base, [0.2, 0.5]);
-    const start = rng.int(12, n - 24);
+    // Live acontece quando a audiência está acordada: começa numa hora acima da média do dia.
+    const awake = expected.map((v, t) => t).filter((t) => t >= 12 && t <= n - 24 && expected[t] > base);
+    const start = awake[rng.int(0, awake.length - 1)];
     const end = start + rng.int(2, 8);
     const level = base * rng.uniform(5, 20);
     for (let t = start; t < end; t++) expected[t] += level;
@@ -169,6 +171,17 @@ const generators = {
   canal_grande_liso(rng, n) {
     const level = logUniform(rng, 20_000, 100_000);
     return humanViews(rng, dailyAudience(rng, n, level, [0.1, 0.2]), rng.uniform(0.01, 0.03));
+  },
+
+  // Público espalhado por vários fusos: ciclo diário raso, e um destaque na plataforma em qualquer hora.
+  publico_varios_fusos(rng, n) {
+    const base = logUniform(rng, 50, 500);
+    const expected = dailyAudience(rng, n, base, [0.03, 0.15]);
+    const start = rng.int(12, n - 36);
+    const end = start + rng.int(4, 12);
+    const level = base * rng.uniform(3, 10);
+    for (let t = start; t < end; t++) expected[t] += level;
+    return humanViews(rng, expected, rng.uniform(0.15, 0.3));
   },
 
   // Dois virais reais na mesma série: o segundo pico não é o maior e tem cauda própria.
@@ -258,6 +271,18 @@ const generators = {
     return views;
   },
 
+  // Lote com ruído de gente injetado de madrugada, quando a audiência real deste post dorme.
+  injecao_madrugada(rng, n) {
+    const base = logUniform(rng, 50, 300);
+    const expected = dailyAudience(rng, n, base, [0.6, 0.85]);
+    const night = expected.map((v, t) => t).filter((t) => t >= 30 && t <= n - 24 && expected[t] < 0.5 * base);
+    const start = night[rng.int(0, night.length - 1)];
+    const end = start + rng.int(4, 8);
+    const level = base * rng.uniform(5, 30);
+    for (let t = start; t < end; t++) expected[t] += level;
+    return humanViews(rng, expected, rng.uniform(0.15, 0.3));
+  },
+
   // Robô agendado que atrasa ou adianta uma hora de vez em quando.
   bot_periodico_jitter(rng, n) {
     const base = logUniform(rng, 10, 100);
@@ -315,6 +340,7 @@ export const SCENARIOS: Record<Scenario, ScenarioSpec> = {
   degrau_permanente: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
   dois_virais: { label: "legitimo", count: 25, hours: [96, 168], hard: true },
   canal_grande_liso: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
+  publico_varios_fusos: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
   serie_curta_legitima: { label: "legitimo", count: 20, hours: [24, 47], hard: true },
   pico_comprado: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
   plato_mecanico: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
@@ -324,6 +350,7 @@ export const SCENARIOS: Record<Scenario, ScenarioSpec> = {
   compra_na_semana_do_viral: { label: "suspeito", count: 25, hours: [96, 168], hard: true },
   plato_ruido_pequeno: { label: "suspeito", count: 25, hours: [72, 168], hard: true },
   bot_periodico_jitter: { label: "suspeito", count: 25, hours: [72, 168], hard: true },
+  injecao_madrugada: { label: "suspeito", count: 25, hours: [72, 168], hard: true },
   compra_imitando_organico: { label: "suspeito", count: 20, hours: [72, 168], hard: true },
   compra_gradual: { label: "suspeito", count: 20, hours: [72, 168], hard: true },
 };

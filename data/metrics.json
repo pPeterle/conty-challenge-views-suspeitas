@@ -2,33 +2,33 @@
   "avaliacao": {
     "classifier_version": "1.0.0",
     "seed": 2002,
-    "dataset_sha256": "31c35493faad125c5c687aeaa109b28ecccbe7f91ffda9ee48d2951ad9e90d9e",
+    "dataset_sha256": "413bba59056bcb7d9f58bd96d3f56fa282a9b8ebdd6565151c5dae574f03c3b6",
     "thresholds": {
       "peak_tail": 0.2,
-      "drop": 0.9,
+      "drop": 0.65,
       "mechanical_dispersion": 0.2,
       "periodic_fraction": 0.8
     },
-    "total": 745,
-    "legit_total": 490,
-    "suspicious_total": 255,
-    "false_positive_rate": 0.0163265306122449,
-    "recall": 0.6509803921568628,
-    "precision": 0.9540229885057471,
+    "total": 795,
+    "legit_total": 515,
+    "suspicious_total": 280,
+    "false_positive_rate": 0.02524271844660194,
+    "recall": 0.675,
+    "precision": 0.9356435643564357,
     "inconclusive_rate": {
-      "legitimo": 0.2673469387755102,
-      "suspeito": 0.12941176470588237
+      "legitimo": 0.3145631067961165,
+      "suspeito": 0.14285714285714285
     },
     "confusion": {
       "legitimo": {
-        "legitimo": 351,
-        "suspeito": 8,
-        "inconclusivo": 131
+        "legitimo": 340,
+        "suspeito": 13,
+        "inconclusivo": 162
       },
       "suspeito": {
-        "legitimo": 56,
-        "suspeito": 166,
-        "inconclusivo": 33
+        "legitimo": 51,
+        "suspeito": 189,
+        "inconclusivo": 40
       }
     },
     "by_scenario": {
@@ -60,9 +60,9 @@
         "label": "legitimo",
         "hard": false,
         "total": 40,
-        "legitimo": 25,
+        "legitimo": 24,
         "suspeito": 0,
-        "inconclusivo": 15
+        "inconclusivo": 16
       },
       "viral_relampago": {
         "label": "legitimo",
@@ -84,9 +84,9 @@
         "label": "legitimo",
         "hard": true,
         "total": 40,
-        "legitimo": 16,
-        "suspeito": 2,
-        "inconclusivo": 22
+        "legitimo": 13,
+        "suspeito": 4,
+        "inconclusivo": 23
       },
       "ciclo_diario_forte": {
         "label": "legitimo",
@@ -108,17 +108,17 @@
         "label": "legitimo",
         "hard": true,
         "total": 25,
-        "legitimo": 7,
-        "suspeito": 0,
-        "inconclusivo": 18
+        "legitimo": 2,
+        "suspeito": 2,
+        "inconclusivo": 21
       },
       "viral_cortado": {
         "label": "legitimo",
         "hard": true,
         "total": 25,
-        "legitimo": 2,
-        "suspeito": 0,
-        "inconclusivo": 23
+        "legitimo": 0,
+        "suspeito": 1,
+        "inconclusivo": 24
       },
       "degrau_permanente": {
         "label": "legitimo",
@@ -143,6 +143,14 @@
         "legitimo": 25,
         "suspeito": 0,
         "inconclusivo": 0
+      },
+      "publico_varios_fusos": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 0,
+        "suspeito": 0,
+        "inconclusivo": 25
       },
       "serie_curta_legitima": {
         "label": "legitimo",
@@ -172,9 +180,9 @@
         "label": "suspeito",
         "hard": false,
         "total": 30,
-        "legitimo": 4,
-        "suspeito": 0,
-        "inconclusivo": 26
+        "legitimo": 0,
+        "suspeito": 2,
+        "inconclusivo": 28
       },
       "bot_periodico": {
         "label": "suspeito",
@@ -196,9 +204,9 @@
         "label": "suspeito",
         "hard": true,
         "total": 25,
-        "legitimo": 12,
+        "legitimo": 10,
         "suspeito": 13,
-        "inconclusivo": 0
+        "inconclusivo": 2
       },
       "plato_ruido_pequeno": {
         "label": "suspeito",
@@ -215,6 +223,14 @@
         "legitimo": 0,
         "suspeito": 25,
         "inconclusivo": 0
+      },
+      "injecao_madrugada": {
+        "label": "suspeito",
+        "hard": true,
+        "total": 25,
+        "legitimo": 1,
+        "suspeito": 21,
+        "inconclusivo": 3
       },
       "compra_imitando_organico": {
         "label": "suspeito",
@@ -235,26 +251,31 @@
     },
     "false_positives": [
       "criador_pequeno_ruidoso-001",
+      "criador_pequeno_ruidoso-005",
       "criador_pequeno_ruidoso-009",
+      "criador_pequeno_ruidoso-017",
+      "live_fim_seco-001",
       "live_fim_seco-002",
       "live_fim_seco-006",
       "live_fim_seco-014",
       "live_fim_seco-015",
-      "live_fim_seco-018",
-      "live_fim_seco-019"
+      "live_fim_seco-019",
+      "destaque_plataforma-003",
+      "destaque_plataforma-020",
+      "viral_cortado-009"
     ],
     "legit_margins": {
       "pico_sem_cauda": {
         "threshold": 0.2,
         "fires_when": "below",
         "closest": 0,
-        "sample": "live_fim_seco-002"
+        "sample": "live_fim_seco-008"
       },
       "queda_abrupta": {
-        "threshold": 0.9,
+        "threshold": 0.65,
         "fires_when": "at_or_above",
-        "closest": 0.9694,
-        "sample": "viral_cortado-006"
+        "closest": 0.9816,
+        "sample": "live_fim_seco-005"
       },
       "repeticao_mecanica": {
         "threshold": 0.2,
@@ -268,6 +289,12 @@
         "closest": 0.0695,
         "sample": "degrau_permanente-021"
       },
+      "fora_do_ritmo": {
+        "threshold": 0.6,
+        "fires_when": "below",
+        "closest": 0.3597,
+        "sample": "dois_virais-025"
+      },
       "rajadas_periodicas": {
         "threshold": 0.8,
         "fires_when": "at_or_above",
@@ -279,33 +306,33 @@
   "calibracao": {
     "classifier_version": "1.0.0",
     "seed": 1001,
-    "dataset_sha256": "35eae2870c7797f204c9821cd3633dea0b60db1ed9075221858e79df01cf4a33",
+    "dataset_sha256": "5a3f01f3ce1094bbc677458f5ea2fbd7e1d206d31485be3fa43ffcf7d025ebbd",
     "thresholds": {
       "peak_tail": 0.2,
-      "drop": 0.9,
+      "drop": 0.65,
       "mechanical_dispersion": 0.2,
       "periodic_fraction": 0.8
     },
-    "total": 745,
-    "legit_total": 490,
-    "suspicious_total": 255,
-    "false_positive_rate": 0.00816326530612245,
-    "recall": 0.6078431372549019,
-    "precision": 0.9748427672955975,
+    "total": 795,
+    "legit_total": 515,
+    "suspicious_total": 280,
+    "false_positive_rate": 0.015533980582524271,
+    "recall": 0.6571428571428571,
+    "precision": 0.9583333333333334,
     "inconclusive_rate": {
-      "legitimo": 0.2571428571428571,
-      "suspeito": 0.15294117647058825
+      "legitimo": 0.31844660194174756,
+      "suspeito": 0.14285714285714285
     },
     "confusion": {
       "legitimo": {
-        "legitimo": 360,
-        "suspeito": 4,
-        "inconclusivo": 126
+        "legitimo": 343,
+        "suspeito": 8,
+        "inconclusivo": 164
       },
       "suspeito": {
-        "legitimo": 61,
-        "suspeito": 155,
-        "inconclusivo": 39
+        "legitimo": 56,
+        "suspeito": 184,
+        "inconclusivo": 40
       }
     },
     "by_scenario": {
@@ -361,8 +388,8 @@
         "label": "legitimo",
         "hard": true,
         "total": 40,
-        "legitimo": 13,
-        "suspeito": 0,
+        "legitimo": 12,
+        "suspeito": 1,
         "inconclusivo": 27
       },
       "ciclo_diario_forte": {
@@ -377,25 +404,25 @@
         "label": "legitimo",
         "hard": true,
         "total": 25,
-        "legitimo": 1,
-        "suspeito": 4,
+        "legitimo": 0,
+        "suspeito": 5,
         "inconclusivo": 20
       },
       "destaque_plataforma": {
         "label": "legitimo",
         "hard": true,
         "total": 25,
-        "legitimo": 16,
-        "suspeito": 0,
-        "inconclusivo": 9
+        "legitimo": 3,
+        "suspeito": 1,
+        "inconclusivo": 21
       },
       "viral_cortado": {
         "label": "legitimo",
         "hard": true,
         "total": 25,
-        "legitimo": 4,
-        "suspeito": 0,
-        "inconclusivo": 21
+        "legitimo": 2,
+        "suspeito": 1,
+        "inconclusivo": 22
       },
       "degrau_permanente": {
         "label": "legitimo",
@@ -421,6 +448,14 @@
         "suspeito": 0,
         "inconclusivo": 0
       },
+      "publico_varios_fusos": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 0,
+        "suspeito": 0,
+        "inconclusivo": 25
+      },
       "serie_curta_legitima": {
         "label": "legitimo",
         "hard": true,
@@ -434,8 +469,8 @@
         "hard": false,
         "total": 30,
         "legitimo": 0,
-        "suspeito": 27,
-        "inconclusivo": 3
+        "suspeito": 29,
+        "inconclusivo": 1
       },
       "plato_mecanico": {
         "label": "suspeito",
@@ -449,9 +484,9 @@
         "label": "suspeito",
         "hard": false,
         "total": 30,
-        "legitimo": 4,
-        "suspeito": 0,
-        "inconclusivo": 26
+        "legitimo": 0,
+        "suspeito": 3,
+        "inconclusivo": 27
       },
       "bot_periodico": {
         "label": "suspeito",
@@ -473,9 +508,9 @@
         "label": "suspeito",
         "hard": true,
         "total": 25,
-        "legitimo": 17,
+        "legitimo": 16,
         "suspeito": 8,
-        "inconclusivo": 0
+        "inconclusivo": 1
       },
       "plato_ruido_pequeno": {
         "label": "suspeito",
@@ -492,6 +527,14 @@
         "legitimo": 0,
         "suspeito": 25,
         "inconclusivo": 0
+      },
+      "injecao_madrugada": {
+        "label": "suspeito",
+        "hard": true,
+        "total": 25,
+        "legitimo": 0,
+        "suspeito": 24,
+        "inconclusivo": 1
       },
       "compra_imitando_organico": {
         "label": "suspeito",
@@ -511,20 +554,24 @@
       }
     },
     "false_positives": [
+      "criador_pequeno_ruidoso-024",
       "live_fim_seco-002",
-      "live_fim_seco-016",
+      "live_fim_seco-004",
+      "live_fim_seco-013",
       "live_fim_seco-017",
-      "live_fim_seco-019"
+      "live_fim_seco-019",
+      "destaque_plataforma-022",
+      "viral_cortado-008"
     ],
     "legit_margins": {
       "pico_sem_cauda": {
         "threshold": 0.2,
         "fires_when": "below",
         "closest": 0,
-        "sample": "live_fim_seco-023"
+        "sample": "live_fim_seco-018"
       },
       "queda_abrupta": {
-        "threshold": 0.9,
+        "threshold": 0.65,
         "fires_when": "at_or_above",
         "closest": 0.9797,
         "sample": "viral_cortado-002"
@@ -541,6 +588,12 @@
         "closest": 0.0798,
         "sample": "viral_organico-047"
       },
+      "fora_do_ritmo": {
+        "threshold": 0.6,
+        "fires_when": "below",
+        "closest": 0.1105,
+        "sample": "viral_organico-016"
+      },
       "rajadas_periodicas": {
         "threshold": 0.8,
         "fires_when": "at_or_above",
@@ -554,41 +607,41 @@
       {
         "calibration_seed": 1001,
         "evaluation_seed": 2002,
-        "false_positive_rate": 0.0163265306122449,
-        "recall": 0.6509803921568628
+        "false_positive_rate": 0.02524271844660194,
+        "recall": 0.675
       },
       {
         "calibration_seed": 1101,
         "evaluation_seed": 2102,
-        "false_positive_rate": 0.014285714285714285,
-        "recall": 0.6470588235294118
+        "false_positive_rate": 0.019417475728155338,
+        "recall": 0.6535714285714286
       },
       {
         "calibration_seed": 1201,
         "evaluation_seed": 2202,
-        "false_positive_rate": 0.02040816326530612,
-        "recall": 0.5803921568627451
+        "false_positive_rate": 0.02912621359223301,
+        "recall": 0.6357142857142857
       },
       {
         "calibration_seed": 1301,
         "evaluation_seed": 2302,
-        "false_positive_rate": 0.0163265306122449,
-        "recall": 0.6235294117647059
+        "false_positive_rate": 0.017475728155339806,
+        "recall": 0.6321428571428571
       },
       {
         "calibration_seed": 1401,
         "evaluation_seed": 2402,
-        "false_positive_rate": 0.018367346938775512,
-        "recall": 0.6392156862745098
+        "false_positive_rate": 0.017475728155339806,
+        "recall": 0.675
       }
     ],
     "false_positive_rate": {
-      "min": 0.014285714285714285,
-      "max": 0.02040816326530612
+      "min": 0.017475728155339806,
+      "max": 0.02912621359223301
     },
     "recall": {
-      "min": 0.5803921568627451,
-      "max": 0.6509803921568628
+      "min": 0.6321428571428571,
+      "max": 0.675
     }
   }
 }

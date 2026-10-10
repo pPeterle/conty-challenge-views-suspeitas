@@ -67,6 +67,34 @@ describe("patamar liso", () => {
   });
 });
 
+describe("ritmo dia/noite aprendido da série", () => {
+  // Audiência de 200 views/h com noite forte: a hora 0 de cada dia é o meio da tarde, a 12 é o meio da madrugada.
+  const day = (t: number) => 1 + 0.8 * Math.cos((2 * Math.PI * t) / 24);
+  const audience = Array.from({ length: 168 }, (_, t) => Math.round(200 * day(t)) + ((t * 7) % 9) - 4);
+  // Lote de 6 horas com variação de gente (±15%) somado à audiência.
+  const inject = (start: number) =>
+    audience.map((v, t) => (t >= start && t < start + 6 ? v + Math.round(3000 * (1 + 0.15 * (((t * 37) % 21) / 10 - 1))) : v));
+
+  it("lote ruidoso injetado de madrugada acusa, porque soma queda abrupta com fora do ritmo", () => {
+    const result = classify(inject(84));
+    expect(signal(result, "fora_do_ritmo").fired).toBe(true);
+    expect(result.classification).toBe("suspeito");
+    expect(result.reason).toContain("quando o público real não está");
+  });
+
+  it("o mesmo lote no horário forte não acusa: sozinha, a queda é formato de live ou destaque", () => {
+    const result = classify(inject(72));
+    expect(signal(result, "fora_do_ritmo").fired).toBe(false);
+    expect(result.classification).toBe("inconclusivo");
+  });
+
+  it("sem ciclo dia/noite claro (público em vários fusos), o ritmo nem é avaliado", () => {
+    const flat = Array.from({ length: 168 }, (_, t) => 200 + ((t * 37) % 41) - 20);
+    const series = flat.map((v, t) => (t >= 84 && t < 90 ? v + 3000 : v));
+    expect(signal(classify(series), "fora_do_ritmo").evaluated).toBe(false);
+  });
+});
+
 describe("todos os picos são julgados", () => {
   it("compra pequena na semana de um viral real acusa, mesmo não sendo o maior pico", () => {
     const viral = withOrganicPeak(steady(168, 100), 30, 6000, 4, 8);

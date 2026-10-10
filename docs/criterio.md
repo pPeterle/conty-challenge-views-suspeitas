@@ -36,16 +36,16 @@ Os valores usados na versão inicial, escolhidos à mão antes de existir calibr
 como.
 
 <!-- thresholds:start -->
-Gerado por `npm run calibrate` na partição de calibração (semente 1001). Regra: maximizar recall com falso positivo <= 2% na partição de calibração. 875 combinações testadas, 280 dentro da meta.
+Gerado por `npm run calibrate` na partição de calibração (semente 1001). Regra: maximizar recall com falso positivo <= 2% na partição de calibração. 875 combinações testadas, 276 dentro da meta.
 
 | sinal | dispara quando o valor fica | limiar escolhido | candidatos |
 |---|---|---|---|
 | pico_sem_cauda | abaixo de | 0,2 | 0,1; 0,2; 0,3; 0,4; 0,5 |
-| queda_abrupta | igual ou acima de | 0,9 | 0,9; 0,85; 0,8; 0,75; 0,7; 0,65; 0,6 |
+| queda_abrupta | igual ou acima de | 0,65 | 0,9; 0,85; 0,8; 0,75; 0,7; 0,65; 0,6 |
 | repeticao_mecanica | abaixo de | 0,2 | 0,05; 0,1; 0,2; 0,3; 0,5 |
 | rajadas_periodicas | igual ou acima de | 0,8 | 1; 0,9; 0,8; 0,7; 0,6 |
 
-Na calibração: falso positivo 0,82%, recall 60,78%.
+Na calibração: falso positivo 1,55%, recall 65,71%.
 <!-- thresholds:end -->
 
 ## Sinais
@@ -145,6 +145,23 @@ A exigência de destoar da mediana é o que poupa o canal grande e liso: com dez
 e ruído relativo de 1% a 3%, a série inteira fica no mesmo nível, nenhuma janela chega a 3 vezes a mediana e o
 sinal nem é avaliado. O dataset tem essa família legítima (`canal_grande_liso`) para medir o custo.
 
+### 6. `fora_do_ritmo`: evento quando o público real dorme (não acusa sozinho)
+
+Com 48 horas ou mais, o classificador aprende o ritmo da própria série: para cada hora do dia (contada da
+publicação), a mediana das views daquela hora entre os dias. A mediana faz um evento numa noite só não mudar o
+perfil. As 8 horas mais fortes do perfil são o "dia". Se as 8 mais fracas têm mais da metade das views do dia,
+não há ciclo claro (público em vários fusos, por exemplo) e o sinal não é avaliado.
+
+Com ciclo claro, olha o evento que já levantou dúvida: o patamar antes de uma queda abrupta (até 24 horas
+coladas antes dela) ou o bloco do maior pico, se ele tiver cauda curta. Calcula o nível típico da audiência
+naquelas horas do dia, como fração do nível do dia. Dispara se for de 60% ou menos: as views chegaram quando o
+público real deste post costuma estar fraco.
+
+Sozinho ele não acusa, porque não há evento sem uma queda ou um pico. Junto com uma queda abrupta isolada ou com
+um pico de cauda curta, que sozinhos dariam `inconclusivo`, conta como segundo sinal e o resultado vira
+`suspeito`. Lives, por exemplo, acontecem com o público acordado; um lote injetado às 3 da manhã do público,
+não.
+
 ## Como os sinais se combinam
 
 Na ordem, a primeira regra que bate decide:
@@ -152,10 +169,12 @@ Na ordem, a primeira regra que bate decide:
 1. Série com menos de 24 horas: `inconclusivo` (a API nem chega aqui, devolve 400).
 2. Algum sinal disparou: `suspeito`, com uma exceção. O motivo junta a explicação de cada sinal que disparou.
    A exceção é a queda abrupta isolada: se só `queda_abrupta` disparou e o patamar antes dela variava como
-   gente (dispersão de 0,3 ou mais), o resultado é `inconclusivo`. Live que termina, post que sai do destaque
+   gente (dispersão de 0,3 ou mais), o resultado é `inconclusivo`. Se `fora_do_ritmo` disparou junto (o
+   patamar estava na madrugada do público), ela deixa de ser isolada. Live que termina, post que sai do destaque
    da plataforma e viral cortado têm exatamente esse formato, e acusar com base nisso é o falso positivo caro
    do enunciado. Com outro sinal junto, ou patamar regular demais, continua `suspeito`.
-3. Pico relevante na zona cinza (ver `pico_sem_cauda`) ou com cauda não observável: `inconclusivo`.
+3. Pico relevante na zona cinza (ver `pico_sem_cauda`) ou com cauda não observável: `inconclusivo`. Um pico de
+   cauda curta fora do ritmo já disparou `fora_do_ritmo` e caiu na regra 2.
 4. Volume baixo: mediana abaixo de 5 views/h **e** nenhuma hora com 100 views ou mais: `inconclusivo`. Com
    tão poucas views, ruído e padrão ficam parecidos. Esta regra só vale quando nenhum sinal disparou (regra
    2): uma conta pequena com um sinal disparado continua `suspeito`, e uma com mediana baixa mas alguma hora
@@ -223,8 +242,9 @@ observar. Há um teste para isso (`test/unit/classify.test.ts`) e um exemplo no 
 - **Corte que coincide com a noite.** A regra de queda sazonal ignora uma queda quando o mesmo horário do dia
   anterior ou seguinte também cai. Um pacote de views que acaba bem na hora em que a audiência real vai
   dormir pode passar, e um robô que liga e desliga no mesmo horário todo dia também.
-- **Ausência de ciclo dia/noite.** Pensei em usar, mas depende do fuso da audiência, e audiência
-  internacional achata o ciclo. Ficou de fora.
+- **Evento fora do ritmo em conta sem ciclo claro.** `fora_do_ritmo` só vale com 48 horas ou mais e ciclo
+  dia/noite claro. Com público em vários fusos ou série curta, a injeção de madrugada volta a ser só uma queda
+  isolada, e fica `inconclusivo`.
 
 ## Dataset sintético
 
@@ -241,9 +261,12 @@ verdadeiro:
 | legítimo, difícil | `viral_subida_rapida` | viral que decola em menos de uma hora |
 | legítimo, difícil | `criador_pequeno_ruidoso` | 3 a 40 views/h com ruído muito alto e sem correlação entre horas |
 | legítimo, difícil | `ciclo_diario_forte` | ciclo dia/noite com amplitude de 0,8 a 0,95, ou noite cortada quase a zero |
-| legítimo, difícil | `live_fim_seco` | live de 2 a 8 horas com 5 a 20 vezes a audiência normal, que termina de vez |
+| legítimo, difícil | `live_fim_seco` | live de 2 a 8 horas com 5 a 20 vezes a audiência normal, começando numa hora acima da média do dia, que termina de vez |
 | legítimo, difícil | `destaque_plataforma` | 6 a 24 horas em destaque, com subida de 1 ou 2 horas e saída de uma vez |
 | legítimo, difícil | `viral_cortado` | viral com subida gradual, cortado de uma hora para outra no decaimento |
+| legítimo, difícil | `canal_grande_liso` | 20 a 100 mil views/h, ciclo raso, 1% a 3% de ruído |
+| legítimo, difícil | `publico_varios_fusos` | ciclo diário raso e um destaque de 4 a 12 horas em qualquer hora |
+| legítimo, difícil | `dois_virais` | dois virais reais na mesma série |
 | legítimo, difícil | `degrau_permanente` | audiência que sobe de patamar e fica (post incorporado num site grande) |
 | legítimo, difícil | `serie_curta_legitima` | audiência normal, só 24 a 47 horas de série |
 | suspeito | `pico_comprado` | série orgânica mais um bloco de 1 a 3 horas de 10 a 60 vezes a base |
@@ -251,6 +274,10 @@ verdadeiro:
 | suspeito | `queda_abrupta` | patamar artificial (com ruído, não constante) que some de uma hora para outra |
 | suspeito | `bot_periodico` | rajadas de 1 hora a cada 3 a 8 horas |
 | suspeito, difícil | `serie_curta_comprada` | pico comprado numa série de 24 a 47 horas |
+| suspeito, difícil | `compra_na_semana_do_viral` | lote de 1 a 3 horas depois de um viral real, menor que o pico do viral |
+| suspeito, difícil | `plato_ruido_pequeno` | patamar de robô de 12 a 36 horas com 1% a 3% de ruído |
+| suspeito, difícil | `bot_periodico_jitter` | rajadas a cada 4 a 8 horas, atrasando ou adiantando 1 hora |
+| suspeito, difícil | `injecao_madrugada` | lote de 4 a 8 horas com ruído de gente, nas horas em que a audiência dorme |
 | suspeito, difícil | `compra_imitando_organico` | lote comprado com a forma de um viral, sobre pouca audiência real |
 | suspeito, difícil | `compra_gradual` | views compradas somadas aos poucos ao longo de dias |
 

@@ -64,58 +64,61 @@ As regras valem nesta ordem, e a primeira que bate decide:
 ## Resultado no dataset
 
 <!-- metrics:start -->
-Gerado por `npm run evaluate` na partição de **avaliação** (semente 2002, 745 séries, sha256 `31c35493faad`), com os limiares calibrados na outra partição. Classificador 1.0.0.
+Gerado por `npm run evaluate` na partição de **avaliação** (semente 2002, 795 séries, sha256 `413bba59056b`), com os limiares calibrados na outra partição. Classificador 1.0.0.
 
-- Taxa de falso positivo: <!-- fpr -->1,63%<!-- /fpr --> (8 de 490 legítimos classificados como suspeito)
-- Recall: 65,10% (166 de 255 suspeitos detectados)
-- Precisão: 95,40%
-- Inconclusivo: 26,73% dos legítimos e 12,94% dos suspeitos
-- Para comparar, na partição de calibração (semente 1001): falso positivo 0,82%, recall 60,78%
-- Estabilidade em 5 pares de sementes (calibra em uma, mede na outra): falso positivo de 1,43% a 2,04% e recall de 58,04% a 65,10%. Faixa exigida pelo teste: falso positivo até 5,00% e recall de 45,00% a 75,00%.
+- Taxa de falso positivo: <!-- fpr -->2,52%<!-- /fpr --> (13 de 515 legítimos classificados como suspeito)
+- Recall: 67,50% (189 de 280 suspeitos detectados)
+- Precisão: 93,56%
+- Inconclusivo: 31,46% dos legítimos e 14,29% dos suspeitos
+- Para comparar, na partição de calibração (semente 1001): falso positivo 1,55%, recall 65,71%
+- Estabilidade em 5 pares de sementes (calibra em uma, mede na outra): falso positivo de 1,75% a 2,91% e recall de 63,21% a 67,50%. Faixa exigida pelo teste: falso positivo até 5,00% e recall de 45,00% a 75,00%.
 
 | verdadeiro \ previsto | legitimo | suspeito | inconclusivo |
 |---|---|---|---|
-| legitimo | 351 | 8 | 131 |
-| suspeito | 56 | 166 | 33 |
+| legitimo | 340 | 13 | 162 |
+| suspeito | 51 | 189 | 40 |
 
 | cenário | rótulo | séries | legitimo | suspeito | inconclusivo |
 |---|---|---|---|---|---|
 | crescimento_normal | legitimo | 50 | 50 | 0 | 0 |
 | viral_organico | legitimo | 50 | 50 | 0 | 0 |
 | ciclo_diario | legitimo | 50 | 50 | 0 | 0 |
-| criador_pequeno | legitimo | 40 | 25 | 0 | 15 |
+| criador_pequeno | legitimo | 40 | 24 | 0 | 16 |
 | viral_relampago (difícil) | legitimo | 30 | 29 | 0 | 1 |
 | viral_subida_rapida (difícil) | legitimo | 30 | 30 | 0 | 0 |
-| criador_pequeno_ruidoso (difícil) | legitimo | 40 | 16 | 2 | 22 |
+| criador_pequeno_ruidoso (difícil) | legitimo | 40 | 13 | 4 | 23 |
 | ciclo_diario_forte (difícil) | legitimo | 30 | 17 | 0 | 13 |
 | live_fim_seco (difícil) | legitimo | 25 | 1 | 6 | 18 |
-| destaque_plataforma (difícil) | legitimo | 25 | 7 | 0 | 18 |
-| viral_cortado (difícil) | legitimo | 25 | 2 | 0 | 23 |
+| destaque_plataforma (difícil) | legitimo | 25 | 2 | 2 | 21 |
+| viral_cortado (difícil) | legitimo | 25 | 0 | 1 | 24 |
 | degrau_permanente (difícil) | legitimo | 25 | 24 | 0 | 1 |
 | dois_virais (difícil) | legitimo | 25 | 25 | 0 | 0 |
 | canal_grande_liso (difícil) | legitimo | 25 | 25 | 0 | 0 |
+| publico_varios_fusos (difícil) | legitimo | 25 | 0 | 0 | 25 |
 | serie_curta_legitima (difícil) | legitimo | 20 | 0 | 0 | 20 |
 | pico_comprado | suspeito | 30 | 0 | 29 | 1 |
 | plato_mecanico | suspeito | 30 | 0 | 29 | 1 |
-| queda_abrupta | suspeito | 30 | 4 | 0 | 26 |
+| queda_abrupta | suspeito | 30 | 0 | 2 | 28 |
 | bot_periodico | suspeito | 30 | 0 | 30 | 0 |
 | serie_curta_comprada (difícil) | suspeito | 20 | 0 | 15 | 5 |
-| compra_na_semana_do_viral (difícil) | suspeito | 25 | 12 | 13 | 0 |
+| compra_na_semana_do_viral (difícil) | suspeito | 25 | 10 | 13 | 2 |
 | plato_ruido_pequeno (difícil) | suspeito | 25 | 0 | 25 | 0 |
 | bot_periodico_jitter (difícil) | suspeito | 25 | 0 | 25 | 0 |
+| injecao_madrugada (difícil) | suspeito | 25 | 1 | 21 | 3 |
 | compra_imitando_organico (difícil) | suspeito | 20 | 20 | 0 | 0 |
 | compra_gradual (difícil) | suspeito | 20 | 20 | 0 | 0 |
 
-Falsos positivos na avaliação: criador_pequeno_ruidoso-001, criador_pequeno_ruidoso-009, live_fim_seco-002, live_fim_seco-006, live_fim_seco-014, live_fim_seco-015, live_fim_seco-018, live_fim_seco-019.
+Falsos positivos na avaliação: criador_pequeno_ruidoso-001, criador_pequeno_ruidoso-005, criador_pequeno_ruidoso-009, criador_pequeno_ruidoso-017, live_fim_seco-001, live_fim_seco-002, live_fim_seco-006, live_fim_seco-014, live_fim_seco-015, live_fim_seco-019, destaque_plataforma-003, destaque_plataforma-020, viral_cortado-009.
 
 Folga dos limiares: valor medido na série legítima que chegou mais perto de disparar cada sinal. Valor do lado de disparo quer dizer que o sinal disparou nessa série, o que não implica `suspeito` (queda abrupta isolada vira `inconclusivo`). Em rajadas_periodicas o valor só conta com intervalo de 2 a 12 horas; valor alto com intervalo de 24 horas (ciclo diário) não dispara.
 
 | sinal | dispara quando | limiar | legítimo mais próximo | série |
 |---|---|---|---|---|
-| pico_sem_cauda | abaixo | 0,200 | 0,000 | live_fim_seco-002 |
-| queda_abrupta | igual ou acima | 0,900 | 0,969 | viral_cortado-006 |
+| pico_sem_cauda | abaixo | 0,200 | 0,000 | live_fim_seco-008 |
+| queda_abrupta | igual ou acima | 0,650 | 0,982 | live_fim_seco-005 |
 | repeticao_mecanica | abaixo | 0,200 | 0,243 | criador_pequeno-002 |
 | patamar_liso | abaixo | 0,040 | 0,070 | degrau_permanente-021 |
+| fora_do_ritmo | abaixo | 0,600 | 0,360 | dois_virais-025 |
 | rajadas_periodicas | igual ou acima | 0,800 | 1,000 | ciclo_diario_forte-028 |
 <!-- metrics:end -->
 

@@ -17,7 +17,7 @@ export const NOT_DETECTED: Array<{ title: string; summary: string }> = [
   { title: "Contas pequenas", summary: "Volume muito baixo dá inconclusivo; ruído alto ainda gera alguns falsos positivos por pico_sem_cauda." },
   { title: "Causas legítimas de queda abrupta", summary: "Post apagado, privado ou retirado de recomendação também cai de uma vez; suspeito quer dizer revisão humana." },
   { title: "Corte que coincide com a noite", summary: "Queda que se repete no mesmo horário do dia anterior ou seguinte é ignorada, mesmo se for robô." },
-  { title: "Ausência de ciclo dia/noite", summary: "Não é usada como sinal: depende do fuso da audiência." },
+  { title: "Evento fora do ritmo em conta sem ciclo claro", summary: "fora_do_ritmo exige 48 horas e ciclo dia/noite claro; sem isso, injeção de madrugada fica inconclusivo." },
 ];
 
 /** Documento servido por GET /criteria: limiares e parâmetros vêm dos mesmos objetos que o classificador usa. */
@@ -39,10 +39,11 @@ export function criteriaDocument() {
       { name: "queda_abrupta", fires_when: "at_or_above", threshold: CALIBRATED.drop, measures: "maior queda de uma hora para outra que se sustenta, fora a que se repete no mesmo horário do dia vizinho" },
       { name: "repeticao_mecanica", fires_when: "below", threshold: CALIBRATED.mechanical_dispersion, measures: "menor índice de dispersão (variância / média) em janelas de 12 horas" },
       { name: "patamar_liso", fires_when: "below", threshold: PARAMS.smooth.maxCv, measures: "menor variação relativa (desvio padrão / média) em 12 horas, num patamar de 3 vezes a mediana da série ou mais" },
+      { name: "fora_do_ritmo", fires_when: "below", threshold: PARAMS.rhythm.maxEventLevel, measures: "nível típico da audiência, aprendido da própria série, nas horas do evento suspeito (patamar antes da queda ou pico de cauda curta), como fração do nível do dia; sozinho não acusa" },
       { name: "rajadas_periodicas", fires_when: "at_or_above", threshold: CALIBRATED.periodic_fraction, measures: "fração dos intervalos entre rajadas a até 1 hora de um intervalo de referência entre 2 e 12 horas" },
     ],
     rules: [
-      "Algum sinal disparou: suspeito, exceto queda_abrupta sozinha com patamar de variação humana, que dá inconclusivo.",
+      "Algum sinal disparou: suspeito, exceto queda_abrupta sozinha com patamar de variação humana, que dá inconclusivo. fora_do_ritmo só dispara junto com queda abrupta ou pico de cauda curta.",
       "Pico relevante na zona cinza ou com cauda não observável: inconclusivo.",
       "Mediana abaixo de 5 views/h e nenhuma hora com 100 views ou mais: inconclusivo.",
       "Série com menos de 48 horas: inconclusivo.",

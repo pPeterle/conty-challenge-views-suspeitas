@@ -17,6 +17,7 @@ export interface Fired {
   queda_abrupta: boolean;
   repeticao_mecanica: boolean;
   patamar_liso: boolean;
+  fora_do_ritmo: boolean;
   rajadas_periodicas: boolean;
 }
 
@@ -33,6 +34,7 @@ export function firedSignals(m: Measurements, thr: FiringThresholds): Fired {
     queda_abrupta: m.drop !== null && m.drop.value >= thr.drop,
     repeticao_mecanica: m.mechanical !== null && m.mechanical.dispersion < thr.mechanical_dispersion,
     patamar_liso: m.smooth !== null && m.smooth.cv < PARAMS.smooth.maxCv,
+    fora_do_ritmo: outOfRhythm(m, thr),
     rajadas_periodicas:
       m.periodic.period !== null &&
       m.periodic.period >= p.minPeriod &&
@@ -50,6 +52,21 @@ const peakFires = (p: PeakAnalysis, thr: FiringThresholds): p is MeasuredPeak =>
 /** O primeiro pico (o maior, depois os outros do maior para o menor) que tem formato de lote comprado. */
 export function firingPeak(m: Measurements, thr: FiringThresholds): MeasuredPeak | null {
   return [m.peak, ...m.otherPeaks].find((p): p is MeasuredPeak => peakFires(p, thr)) ?? null;
+}
+
+/** Pico relevante com cauda curta (dispare ou não): o tipo de evento que, fora do ritmo, passa a contar. */
+const shortTailPeak = (m: Measurements): boolean => m.peak.status === "measured" && m.peak.tail < PARAMS.peak.tailGray;
+
+/**
+ * Sozinho não acusa: só dispara junto com uma queda abrupta ou com um pico de cauda curta, quando o patamar
+ * antes da queda, ou o bloco do pico, aconteceu em horas em que a audiência real deste post costuma estar fraca.
+ */
+export function outOfRhythm(m: Measurements, thr: FiringThresholds): boolean {
+  const r = m.rhythm;
+  if (r === null || !r.clear) return false;
+  const max = PARAMS.rhythm.maxEventLevel;
+  const dropFired = m.drop !== null && m.drop.value >= thr.drop;
+  return (dropFired && (r.dropEventLevel ?? 1) <= max) || (shortTailPeak(m) && (r.peakEventLevel ?? 1) <= max);
 }
 
 export function isRegularPlateau(m: Measurements): boolean {
