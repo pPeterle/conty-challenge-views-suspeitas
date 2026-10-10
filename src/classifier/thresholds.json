@@ -12,9 +12,9 @@
     "periodic_fraction": 1
   },
   "calibration": {
-    "false_positive_rate": 0.008602150537634409,
-    "recall": 0.5121951219512195,
+    "false_positive_rate": 0.00816326530612245,
+    "recall": 0.5652173913043478,
     "false_positives": 4,
-    "true_positives": 105
+    "true_positives": 130
   }
 }

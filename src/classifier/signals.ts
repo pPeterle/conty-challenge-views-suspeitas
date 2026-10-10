@@ -1,5 +1,5 @@
 import { type Fired, firingPeak } from "./decide.ts";
-import { fmtDec, fmtInt, fmtPct, fmtRate, fmtRatio, plural } from "./format.ts";
+import { fmtDec, fmtInt, fmtPct, fmtPctDec, fmtRate, fmtRatio, plural } from "./format.ts";
 import type { Measurements } from "./measure.ts";
 import { round4 } from "./stats.ts";
 import { type FiringThresholds, PARAMS } from "./thresholds.ts";
@@ -24,6 +24,7 @@ export function buildSignals(m: Measurements, thr: FiringThresholds, fired: Fire
     peakSignal(m, thr, fired.pico_sem_cauda),
     dropSignal(m, thr, fired.queda_abrupta),
     mechanicalSignal(m, thr, fired.repeticao_mecanica),
+    smoothSignal(m, fired.patamar_liso),
     periodicSignal(m, thr, fired.rajadas_periodicas),
   ];
   // Ordem fixa dos campos no JSON, para a resposta ler de cima para baixo.
@@ -156,6 +157,31 @@ function mechanicalSignal(m: Measurements, thr: FiringThresholds, fired: boolean
     : `A janela de ${t.window} horas mais regular (horas ${w.start} a ${end}) teve índice de dispersão ` +
       `${fmtDec(w.dispersion)}, variação compatível com pessoas (dispara abaixo de ${fmtDec(thr.mechanical_dispersion)}).`;
   return { ...base, value: round4(w.dispersion), evaluated: true, detail };
+}
+
+function smoothSignal(m: Measurements, fired: boolean): Signal {
+  const t = PARAMS.smooth;
+  const w = m.smooth;
+  const base = { name: "patamar_liso" as const, threshold: t.maxCv, fires_when: "below" as const, fired };
+  if (w === null) {
+    return {
+      ...base,
+      value: null,
+      evaluated: false,
+      detail:
+        `Não avaliado: nenhuma janela de ${t.window} horas ficou em ${t.minRatioToMedian} vezes a mediana da série ` +
+        `ou mais (e pelo menos ${t.minMean} views/h). Um nível alto e liso só chama atenção quando destoa do resto.`,
+    };
+  }
+  const end = w.start + t.window - 1;
+  const detail = fired
+    ? `Entre as horas ${w.start} e ${end} as views ficaram em torno de ${fmtRate(w.mean)}, bem acima do resto da ` +
+      `série, variando só ${fmtPctDec(w.cv)} de uma hora para outra (desvio padrão sobre a média). Audiência real ` +
+      `nesse volume sobe e desce mais que ${fmtPct(t.maxCv)} em 12 horas; um patamar tão liso que aparece e some é ` +
+      `entrega de robô com ruído pequeno.`
+    : `O patamar mais liso acima do resto da série (horas ${w.start} a ${end}, ${fmtRate(w.mean)}) variou ` +
+      `${fmtPctDec(w.cv)}, como audiência real (dispara abaixo de ${fmtPct(t.maxCv)}).`;
+  return { ...base, value: round4(w.cv), evaluated: true, detail };
 }
 
 function periodicSignal(m: Measurements, thr: FiringThresholds, fired: boolean): Signal {

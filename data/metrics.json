@@ -2,32 +2,32 @@
   "avaliacao": {
     "classifier_version": "1.0.0",
     "seed": 2002,
-    "dataset_sha256": "f873aa556fd89a3a7e90a5e79b1f6f262cec2e2640030e73c3722f82cb908e39",
+    "dataset_sha256": "d730b36a7f2f35d99b81863997d45d493020768f563b48551bdca4921ae97f76",
     "thresholds": {
       "peak_tail": 0.2,
       "drop": 0.9,
       "mechanical_dispersion": 0.2,
       "periodic_fraction": 1
     },
-    "total": 670,
-    "legit_total": 465,
-    "suspicious_total": 205,
-    "false_positive_rate": 0.017204301075268817,
-    "recall": 0.5658536585365853,
-    "precision": 0.9354838709677419,
+    "total": 720,
+    "legit_total": 490,
+    "suspicious_total": 230,
+    "false_positive_rate": 0.0163265306122449,
+    "recall": 0.6130434782608696,
+    "precision": 0.9463087248322147,
     "inconclusive_rate": {
-      "legitimo": 0.2817204301075269,
-      "suspeito": 0.16097560975609757
+      "legitimo": 0.2673469387755102,
+      "suspeito": 0.14347826086956522
     },
     "confusion": {
       "legitimo": {
-        "legitimo": 326,
+        "legitimo": 351,
         "suspeito": 8,
         "inconclusivo": 131
       },
       "suspeito": {
         "legitimo": 56,
-        "suspeito": 116,
+        "suspeito": 141,
         "inconclusivo": 33
       }
     },
@@ -136,6 +136,14 @@
         "suspeito": 0,
         "inconclusivo": 0
       },
+      "canal_grande_liso": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 25,
+        "suspeito": 0,
+        "inconclusivo": 0
+      },
       "serie_curta_legitima": {
         "label": "legitimo",
         "hard": true,
@@ -192,6 +200,14 @@
         "suspeito": 13,
         "inconclusivo": 0
       },
+      "plato_ruido_pequeno": {
+        "label": "suspeito",
+        "hard": true,
+        "total": 25,
+        "legitimo": 0,
+        "suspeito": 25,
+        "inconclusivo": 0
+      },
       "compra_imitando_organico": {
         "label": "suspeito",
         "hard": true,
@@ -238,6 +254,12 @@
         "closest": 0.2427,
         "sample": "criador_pequeno-002"
       },
+      "patamar_liso": {
+        "threshold": 0.04,
+        "fires_when": "below",
+        "closest": 0.0695,
+        "sample": "degrau_permanente-021"
+      },
       "rajadas_periodicas": {
         "threshold": 1,
         "fires_when": "at_or_above",
@@ -249,32 +271,32 @@
   "calibracao": {
     "classifier_version": "1.0.0",
     "seed": 1001,
-    "dataset_sha256": "1e262db65d23f8da6826da729dabdab29e30e0d3d130c1416687bf597f58fc5b",
+    "dataset_sha256": "daf00a564136f0e546082a0cfef1183f8ede7ecc04322cdd80b8afbeacbd1a8d",
     "thresholds": {
       "peak_tail": 0.2,
       "drop": 0.9,
       "mechanical_dispersion": 0.2,
       "periodic_fraction": 1
     },
-    "total": 670,
-    "legit_total": 465,
-    "suspicious_total": 205,
-    "false_positive_rate": 0.008602150537634409,
-    "recall": 0.5121951219512195,
-    "precision": 0.963302752293578,
+    "total": 720,
+    "legit_total": 490,
+    "suspicious_total": 230,
+    "false_positive_rate": 0.00816326530612245,
+    "recall": 0.5652173913043478,
+    "precision": 0.9701492537313433,
     "inconclusive_rate": {
-      "legitimo": 0.2709677419354839,
-      "suspeito": 0.1902439024390244
+      "legitimo": 0.2571428571428571,
+      "suspeito": 0.16956521739130434
     },
     "confusion": {
       "legitimo": {
-        "legitimo": 335,
+        "legitimo": 360,
         "suspeito": 4,
         "inconclusivo": 126
       },
       "suspeito": {
         "legitimo": 61,
-        "suspeito": 105,
+        "suspeito": 130,
         "inconclusivo": 39
       }
     },
@@ -383,6 +405,14 @@
         "suspeito": 0,
         "inconclusivo": 0
       },
+      "canal_grande_liso": {
+        "label": "legitimo",
+        "hard": true,
+        "total": 25,
+        "legitimo": 25,
+        "suspeito": 0,
+        "inconclusivo": 0
+      },
       "serie_curta_legitima": {
         "label": "legitimo",
         "hard": true,
@@ -439,6 +469,14 @@
         "suspeito": 8,
         "inconclusivo": 0
       },
+      "plato_ruido_pequeno": {
+        "label": "suspeito",
+        "hard": true,
+        "total": 25,
+        "legitimo": 0,
+        "suspeito": 25,
+        "inconclusivo": 0
+      },
       "compra_imitando_organico": {
         "label": "suspeito",
         "hard": true,
@@ -481,6 +519,12 @@
         "closest": 0.2159,
         "sample": "viral_relampago-003"
       },
+      "patamar_liso": {
+        "threshold": 0.04,
+        "fires_when": "below",
+        "closest": 0.0798,
+        "sample": "viral_organico-047"
+      },
       "rajadas_periodicas": {
         "threshold": 1,
         "fires_when": "at_or_above",
@@ -494,41 +538,41 @@
       {
         "calibration_seed": 1001,
         "evaluation_seed": 2002,
-        "false_positive_rate": 0.017204301075268817,
-        "recall": 0.5658536585365853
+        "false_positive_rate": 0.0163265306122449,
+        "recall": 0.6130434782608696
       },
       {
         "calibration_seed": 1101,
         "evaluation_seed": 2102,
-        "false_positive_rate": 0.015053763440860216,
-        "recall": 0.5609756097560976
+        "false_positive_rate": 0.014285714285714285,
+        "recall": 0.6086956521739131
       },
       {
         "calibration_seed": 1201,
         "evaluation_seed": 2202,
-        "false_positive_rate": 0.021505376344086023,
-        "recall": 0.47804878048780486
+        "false_positive_rate": 0.02040816326530612,
+        "recall": 0.5347826086956522
       },
       {
         "calibration_seed": 1301,
         "evaluation_seed": 2302,
-        "false_positive_rate": 0.017204301075268817,
-        "recall": 0.5317073170731708
+        "false_positive_rate": 0.0163265306122449,
+        "recall": 0.5826086956521739
       },
       {
         "calibration_seed": 1401,
         "evaluation_seed": 2402,
-        "false_positive_rate": 0.01935483870967742,
-        "recall": 0.551219512195122
+        "false_positive_rate": 0.018367346938775512,
+        "recall": 0.6
       }
     ],
     "false_positive_rate": {
-      "min": 0.015053763440860216,
-      "max": 0.021505376344086023
+      "min": 0.014285714285714285,
+      "max": 0.02040816326530612
     },
     "recall": {
-      "min": 0.47804878048780486,
-      "max": 0.5658536585365853
+      "min": 0.5347826086956522,
+      "max": 0.6130434782608696
     }
   }
 }

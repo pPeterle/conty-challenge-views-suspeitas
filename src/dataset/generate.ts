@@ -165,6 +165,12 @@ const generators = {
     return humanViews(rng, expected, rng.uniform(0.15, 0.3));
   },
 
+  // Canal grande: dezenas de milhares de views por hora, ciclo diário raso e pouco ruído relativo.
+  canal_grande_liso(rng, n) {
+    const level = logUniform(rng, 20_000, 100_000);
+    return humanViews(rng, dailyAudience(rng, n, level, [0.1, 0.2]), rng.uniform(0.01, 0.03));
+  },
+
   // Dois virais reais na mesma série: o segundo pico não é o maior e tem cauda própria.
   dois_virais(rng, n) {
     const expected = viralCurve(rng, n, [2, 6], [4, 12]);
@@ -240,6 +246,18 @@ const generators = {
     return views;
   },
 
+  // Robô que entrega um patamar alto por 12 a 36 horas com ruído de 1% a 3%, para escapar da checagem de Poisson.
+  plato_ruido_pequeno(rng, n) {
+    const base = logUniform(rng, 50, 300);
+    const views = humanViews(rng, dailyAudience(rng, n, base, [0.2, 0.5]), rng.uniform(0.1, 0.3));
+    const level = base * rng.uniform(8, 25);
+    const noise = rng.uniform(0.01, 0.03);
+    const start = rng.int(12, n - 40);
+    const end = start + rng.int(12, 36);
+    for (let t = start; t < end; t++) views[t] = Math.round(level * (1 + noise * rng.normal()));
+    return views;
+  },
+
   // Compra pequena na mesma semana de um viral real: o lote não é o maior pico da série.
   compra_na_semana_do_viral(rng, n) {
     const expected = viralCurve(rng, n, [2, 6], [4, 12]);
@@ -284,6 +302,7 @@ export const SCENARIOS: Record<Scenario, ScenarioSpec> = {
   viral_cortado: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
   degrau_permanente: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
   dois_virais: { label: "legitimo", count: 25, hours: [96, 168], hard: true },
+  canal_grande_liso: { label: "legitimo", count: 25, hours: [72, 168], hard: true },
   serie_curta_legitima: { label: "legitimo", count: 20, hours: [24, 47], hard: true },
   pico_comprado: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
   plato_mecanico: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
@@ -291,6 +310,7 @@ export const SCENARIOS: Record<Scenario, ScenarioSpec> = {
   bot_periodico: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
   serie_curta_comprada: { label: "suspeito", count: 20, hours: [24, 47], hard: true },
   compra_na_semana_do_viral: { label: "suspeito", count: 25, hours: [96, 168], hard: true },
+  plato_ruido_pequeno: { label: "suspeito", count: 25, hours: [72, 168], hard: true },
   compra_imitando_organico: { label: "suspeito", count: 20, hours: [72, 168], hard: true },
   compra_gradual: { label: "suspeito", count: 20, hours: [72, 168], hard: true },
 };

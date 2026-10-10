@@ -44,6 +44,29 @@ describe("pico orgânico x pico comprado", () => {
   });
 });
 
+describe("patamar liso", () => {
+  // Ruído determinístico de ±2% em torno de 3.000 views/h.
+  const wiggle = (t: number) => ((t * 37) % 21) / 10 - 1;
+
+  it("patamar de 24 horas com 2% de ruído, bem acima do resto da série, acusa", () => {
+    const series = steady(120, 150).map((v, t) => (t >= 40 && t < 64 ? Math.round(3000 * (1 + 0.02 * wiggle(t))) : v));
+    const result = classify(series);
+    expect(signal(result, "patamar_liso").fired).toBe(true);
+    expect(signal(result, "repeticao_mecanica").fired).toBe(false);
+    expect(result.classification).toBe("suspeito");
+    expect(result.reason).toContain("variando só");
+  });
+
+  it("canal grande e liso a semana inteira não acusa: não há patamar que destoe do resto", () => {
+    const series = Array.from({ length: 168 }, (_, t) =>
+      Math.round(50_000 * (1 + 0.15 * Math.sin((2 * Math.PI * t) / 24)) * (1 + 0.015 * wiggle(t))),
+    );
+    const result = classify(series);
+    expect(signal(result, "patamar_liso").evaluated).toBe(false);
+    expect(result.classification).toBe("legitimo");
+  });
+});
+
 describe("todos os picos são julgados", () => {
   it("compra pequena na semana de um viral real acusa, mesmo não sendo o maior pico", () => {
     const viral = withOrganicPeak(steady(168, 100), 30, 6000, 4, 8);

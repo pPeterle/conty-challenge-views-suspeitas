@@ -52,6 +52,12 @@ export const PARAMS = {
     regularPlateau: 0.3,
   },
   mechanical: { window: 12, minMean: 10 },
+  /**
+   * Patamar liso: 12 horas com variação relativa (desvio padrão / média) abaixo de 4%, num nível pelo menos 3
+   * vezes a mediana da série e de pelo menos 200 views/h. Pega robô com ruído pequeno de propósito, que escapa
+   * do índice de dispersão. Exigir que o patamar destoe do resto da série é o que poupa canal grande e liso.
+   */
+  smooth: { window: 12, maxCv: 0.04, minMean: 200, minRatioToMedian: 3 },
   periodic: { localWindow: 12, burstRatio: 3, burstMinExcess: 50, minBursts: 4, minPeriod: 2, maxPeriod: 12 },
 } as const;
 

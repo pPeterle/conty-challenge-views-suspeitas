@@ -39,6 +39,8 @@ export interface Measurements {
     plateauDispersion: number;
   } | null;
   mechanical: { start: number; dispersion: number; mean: number; sample: number[] } | null;
+  /** Janela de patamar mais lisa entre as que destoam do resto da série; null se nenhuma destoa. */
+  smooth: { start: number; cv: number; mean: number } | null;
   periodic: { bursts: number; firstBurst: number; period: number | null; fraction: number | null };
 }
 
@@ -150,6 +152,19 @@ function measureMechanical(x: readonly number[]): Measurements["mechanical"] {
   return best;
 }
 
+function measureSmooth(x: readonly number[], base: number): Measurements["smooth"] {
+  const t = PARAMS.smooth;
+  let best: Measurements["smooth"] = null;
+  for (let s = 0; s + t.window <= x.length; s++) {
+    const w = x.slice(s, s + t.window);
+    const m = mean(w);
+    if (m < t.minMean || m < t.minRatioToMedian * Math.max(base, 1)) continue;
+    const cv = Math.sqrt(variance(w)) / m;
+    if (best === null || cv < best.cv) best = { start: s, cv, mean: m };
+  }
+  return best;
+}
+
 function measurePeriodic(x: readonly number[]): Measurements["periodic"] {
   const t = PARAMS.periodic;
   const starts: number[] = [];
@@ -180,6 +195,7 @@ export function measure(x: readonly number[]): Measurements {
     ...measurePeaks(x, base),
     drop: measureDrop(x),
     mechanical: measureMechanical(x),
+    smooth: measureSmooth(x, base),
     periodic: measurePeriodic(x),
   };
 }

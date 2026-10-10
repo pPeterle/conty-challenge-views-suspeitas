@@ -13,3 +13,6 @@ export const fmtRate = (n: number): string => {
   const rounded = Math.round(n);
   return `${fmtInt(rounded)} ${rounded === 1 ? "view" : "views"}/h`;
 };
+/** Porcentagem com uma casa: "2,1%". */
+export const fmtPctDec = (fraction: number): string =>
+  `${new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(fraction * 100)}%`;

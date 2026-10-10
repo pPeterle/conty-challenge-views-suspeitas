@@ -100,6 +100,21 @@ describe("limiar de repeticao_mecanica", () => {
   });
 });
 
+describe("parâmetro fixo de patamar_liso", () => {
+  // Patamar de 3.000 alternando ±d por 24 horas sobre base 100 (variando como gente): CV de 12 horas = d·√(12/11)/3.000.
+  const series = (d: number) =>
+    Array.from({ length: 96 }, (_, t) => (t >= 30 && t < 54 ? 3000 + (t % 2 === 0 ? d : -d) : 100 + ((t * 7) % 21) - 10));
+  const exact = (PARAMS.smooth.maxCv * 3000) / Math.sqrt(12 / 11);
+  it(`variação logo abaixo de ${PARAMS.smooth.maxCv} dispara, logo acima não`, () => {
+    const a = sig(series(Math.floor(exact) - 1), "patamar_liso");
+    const b = sig(series(Math.ceil(exact) + 1), "patamar_liso");
+    expect(a.value!).toBeLessThan(PARAMS.smooth.maxCv);
+    expect(b.value!).toBeGreaterThan(PARAMS.smooth.maxCv);
+    expect(a.fired).toBe(true);
+    expect(b.fired).toBe(false);
+  });
+});
+
 describe("limiar de rajadas_periodicas", () => {
   /** 20 intervalos entre rajadas de 800 sobre base 50: `equal` de 6 horas, o resto de 7. */
   function bursts(equal: number): number[] {

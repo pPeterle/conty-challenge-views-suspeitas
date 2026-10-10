@@ -1,10 +1,10 @@
 # Critério de classificação
 
 Este documento é a especificação do classificador. Defini o critério antes de implementar, e a primeira
-versão deste texto veio antes do código (ver a nota de uso de IA no README). Os parâmetros
-fixos (janelas, mínimos de volume) estão em `src/classifier/thresholds.ts`. Os quatro limiares de disparo são
-escolhidos por `npm run calibrate` e gravados em `src/classifier/thresholds.json`; a tabela abaixo é gerada pelo
-mesmo comando, e um teste falha se ela divergir do arquivo.
+versão deste texto veio antes do código (ver a nota de uso de IA no README). Os parâmetros fixos (janelas,
+mínimos de volume e o limite de `patamar_liso`) estão em `src/classifier/thresholds.ts`. Os quatro limiares
+de disparo calibráveis são escolhidos por `npm run calibrate` e gravados em `src/classifier/thresholds.json`;
+a tabela abaixo é gerada pelo mesmo comando, e um teste falha se ela divergir do arquivo.
 
 ## Entrada
 
@@ -45,7 +45,7 @@ Gerado por `npm run calibrate` na partição de calibração (semente 1001). Reg
 | repeticao_mecanica | abaixo de | 0,2 | 0,05; 0,1; 0,2; 0,3; 0,5 |
 | rajadas_periodicas | igual ou acima de | 1 | 1; 0,9; 0,8; 0,7; 0,6 |
 
-Na calibração: falso positivo 0,86%, recall 51,22%.
+Na calibração: falso positivo 0,82%, recall 56,52%.
 <!-- thresholds:end -->
 
 ## Sinais
@@ -127,6 +127,20 @@ Robô agendado entrega um lote a cada `k` horas.
 Dispara se o valor é igual ou maior que o limiar calibrado e `k` está entre 2 e 12 horas. Periodicidade de 24 horas é ignorada de propósito:
 é o ciclo dia/noite de gente de verdade.
 
+### 5. `patamar_liso`: nível alto que quase não varia
+
+O índice de dispersão compara a variância com a de uma Poisson. Em volume alto isso deixa escapar o robô que
+adiciona um ruído pequeno de propósito: 3.000 views/h com 2% de variação tem variância muito maior que a média,
+e passa por `repeticao_mecanica`. Mas audiência real nesse volume, por 12 horas, sobe e desce bem mais que 2%.
+
+Para cada janela de 12 horas com média de pelo menos 200 views/h **e** pelo menos 3 vezes a mediana da série,
+calcula a variação relativa (desvio padrão / média). O valor do sinal é a menor encontrada. Dispara abaixo de
+4%. Este limite é fixo, fora da grade de calibração.
+
+A exigência de destoar da mediana é o que poupa o canal grande e liso: com dezenas de milhares de views por hora
+e ruído relativo de 1% a 3%, a série inteira fica no mesmo nível, nenhuma janela chega a 3 vezes a mediana e o
+sinal nem é avaliado. O dataset tem essa família legítima (`canal_grande_liso`) para medir o custo.
+
 ## Como os sinais se combinam
 
 Na ordem, a primeira regra que bate decide:
@@ -181,8 +195,8 @@ observar. Há um teste para isso (`test/unit/classify.test.ts`) e um exemplo no 
 - **Compra gradual diluída.** Somar 20% de views falsas espalhadas ao longo de dias, com ruído, não muda a
   forma da curva de um jeito que estes sinais vejam.
 - **Patamar com ruído.** Um robô que adiciona variação aleatória na escala de uma Poisson escapa de
-  `repeticao_mecanica`. O mesmo vale para patamar artificial somado a muita audiência real: a variância real
-  mascara a constância do robô. Parte do platô mecânico do dataset escapa por isso.
+  `repeticao_mecanica`, e um com mais de 4% de variação relativa escapa de `patamar_liso`. O mesmo vale para
+  patamar artificial somado a muita audiência real, ou que não chega a 3 vezes a mediana da série.
 - **Rajadas com intervalo irregular**, periódicas a cada 24 horas, ou tão frequentes (a cada 2 horas) que viram
   a própria linha de base local. Com o limiar calibrado de periodicidade, basta um intervalo fora do padrão
   para o sinal não disparar.

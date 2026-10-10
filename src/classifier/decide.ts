@@ -16,6 +16,7 @@ export interface Fired {
   pico_sem_cauda: boolean;
   queda_abrupta: boolean;
   repeticao_mecanica: boolean;
+  patamar_liso: boolean;
   rajadas_periodicas: boolean;
 }
 
@@ -31,6 +32,7 @@ export function firedSignals(m: Measurements, thr: FiringThresholds): Fired {
     pico_sem_cauda: firingPeak(m, thr) !== null,
     queda_abrupta: m.drop !== null && m.drop.value >= thr.drop,
     repeticao_mecanica: m.mechanical !== null && m.mechanical.dispersion < thr.mechanical_dispersion,
+    patamar_liso: m.smooth !== null && m.smooth.cv < PARAMS.smooth.maxCv,
     rajadas_periodicas:
       m.periodic.period !== null &&
       m.periodic.period >= p.minPeriod &&
@@ -69,7 +71,7 @@ export function decide(m: Measurements, thr: FiringThresholds, peakViews: number
   if (Object.values(fired).some(Boolean)) {
     // Queda abrupta sozinha também acontece com gente de verdade (live que termina, post que sai do destaque,
     // viral cortado). Só acusa se outro sinal disparou junto ou se o patamar antes era regular demais.
-    const onlyDrop = fired.queda_abrupta && !fired.pico_sem_cauda && !fired.repeticao_mecanica && !fired.rajadas_periodicas;
+    const onlyDrop = Object.entries(fired).every(([name, on]) => on === (name === "queda_abrupta"));
     if (onlyDrop && !isRegularPlateau(m)) return make("inconclusivo", "queda_isolada");
     return make("suspeito", "sinal_disparou");
   }

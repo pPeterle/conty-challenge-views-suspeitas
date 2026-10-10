@@ -8,7 +8,7 @@ import { CALIBRATED, CLASSIFIER_VERSION, PARAMS } from "./thresholds.ts";
 export const NOT_DETECTED: Array<{ title: string; summary: string }> = [
   { title: "Bots que imitam curva orgânica", summary: "Compra com subida gradual, decaimento exponencial e ruído realista passa por todos os sinais." },
   { title: "Compra gradual diluída", summary: "Views falsas somadas aos poucos ao longo de dias não mudam a forma da curva." },
-  { title: "Patamar com ruído", summary: "Robô com variação na escala de uma Poisson, ou somado a muita audiência real, escapa de repeticao_mecanica." },
+  { title: "Patamar com ruído", summary: "Robô com variação acima de 4%, ou somado a muita audiência real, escapa de repeticao_mecanica e patamar_liso." },
   { title: "Rajadas com intervalo irregular", summary: "Rajadas sem relógio fixo, a cada 24 horas ou a cada 2 horas não disparam rajadas_periodicas." },
   { title: "Live curta", summary: "Live de 2 ou 3 horas que começa e termina de uma vez tem o formato de lote comprado e vira suspeito." },
   { title: "Queda abrupta de patamar com ruído de gente", summary: "Sozinha dá inconclusivo; robô com patamar realista que para de uma vez não é acusado." },
@@ -38,6 +38,7 @@ export function criteriaDocument() {
       { name: "pico_sem_cauda", fires_when: "below", threshold: CALIBRATED.peak_tail, measures: "fração das views extras do pico que ainda aparece nas 10 horas depois dele, em pico de até 3 horas que chega de uma vez; vale para qualquer pico relevante, não só o maior" },
       { name: "queda_abrupta", fires_when: "at_or_above", threshold: CALIBRATED.drop, measures: "maior queda de uma hora para outra que se sustenta, fora a que se repete no mesmo horário do dia vizinho" },
       { name: "repeticao_mecanica", fires_when: "below", threshold: CALIBRATED.mechanical_dispersion, measures: "menor índice de dispersão (variância / média) em janelas de 12 horas" },
+      { name: "patamar_liso", fires_when: "below", threshold: PARAMS.smooth.maxCv, measures: "menor variação relativa (desvio padrão / média) em 12 horas, num patamar de 3 vezes a mediana da série ou mais" },
       { name: "rajadas_periodicas", fires_when: "at_or_above", threshold: CALIBRATED.periodic_fraction, measures: "fração dos intervalos entre rajadas exatamente iguais, com intervalo de 2 a 12 horas" },
     ],
     rules: [

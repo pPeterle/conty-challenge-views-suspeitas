@@ -3,7 +3,7 @@ import type { AddressInfo } from "node:net";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../../src/app.ts";
 import { readFileSync } from "node:fs";
-import { CALIBRATED, CLASSIFIER_VERSION } from "../../src/classifier/thresholds.ts";
+import { CALIBRATED, CLASSIFIER_VERSION, PARAMS } from "../../src/classifier/thresholds.ts";
 import { FixedClock } from "../../src/clock.ts";
 import { listClassifications, openDb, type Db } from "../../src/db.ts";
 import { steady, withBoughtPeak, withOrganicPeak } from "../series.ts";
@@ -45,6 +45,7 @@ describe("POST /classify", () => {
       "pico_sem_cauda",
       "queda_abrupta",
       "repeticao_mecanica",
+      "patamar_liso",
       "rajadas_periodicas",
     ]);
     const peak = json.signals[0];
@@ -201,6 +202,7 @@ describe("GET /criteria", () => {
       CALIBRATED.peak_tail,
       CALIBRATED.drop,
       CALIBRATED.mechanical_dispersion,
+      PARAMS.smooth.maxCv,
       CALIBRATED.periodic_fraction,
     ]);
     expect(json.not_detected.length).toBeGreaterThan(5);
