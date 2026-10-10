@@ -2,6 +2,9 @@ import { createHash } from "node:crypto";
 import { classify, type Label } from "../classifier/classify.ts";
 import { CALIBRATED, CLASSIFIER_VERSION, type FiringThresholds } from "../classifier/thresholds.ts";
 import type { Dataset, TrueLabel } from "../dataset/generate.ts";
+import { decide } from "../classifier/decide.ts";
+import { measure } from "../classifier/measure.ts";
+import { clopperPearson } from "./binomial.ts";
 import { STABILITY_BANDS, type Stability } from "./stability.ts";
 
 type Row = Record<Label, number>;
@@ -21,6 +24,10 @@ export interface Metrics {
   /** Suspeitos corretos / tudo que foi classificado como suspeito. */
   precision: number;
   inconclusive_rate: Record<TrueLabel, number>;
+  /** Intervalo de 95% de Clopper-Pearson para a taxa de falso positivo. */
+  false_positive_ci: { low: number; high: number };
+  /** A regra atual comparada com alternativas simples, nos mesmos sinais e limiares. */
+  rule_comparison: Array<{ rule: string; false_positive_rate: number; recall: number }>;
   confusion: Record<TrueLabel, Row>;
   by_scenario: Record<string, { label: TrueLabel; hard: boolean; total: number } & Row>;
   false_positives: string[];
@@ -34,6 +41,34 @@ const ratio = (a: number, b: number): number => (b === 0 ? 0 : a / b);
 
 export function datasetHash(dataset: Dataset): string {
   return createHash("sha256").update(JSON.stringify(dataset)).digest("hex");
+}
+
+export const RULES: Array<{ rule: string; label: (current: Label, firedCount: number) => Label }> = [
+  { rule: "atual (queda isolada não acusa)", label: (current) => current },
+  { rule: "um sinal qualquer acusa", label: (current, n) => (n >= 1 ? "suspeito" : current) },
+  {
+    rule: "dois sinais acusam; um só fica inconclusivo",
+    label: (current, n) => (n >= 2 ? "suspeito" : n === 1 ? "inconclusivo" : current),
+  },
+];
+
+function compareRules(dataset: Dataset, thr: FiringThresholds): Metrics["rule_comparison"] {
+  const tallies = RULES.map(() => ({ fp: 0, tp: 0 }));
+  let legit = 0;
+  let susp = 0;
+  for (const s of dataset.samples) {
+    if (s.label === "legitimo") legit++;
+    else susp++;
+    const m = measure(s.views);
+    const d = decide(m, thr, Math.max(...s.views));
+    const firedCount = Object.values(d.fired).filter(Boolean).length;
+    RULES.forEach((r, i) => {
+      if (r.label(d.label, firedCount) !== "suspeito") return;
+      if (s.label === "legitimo") tallies[i].fp++;
+      else tallies[i].tp++;
+    });
+  }
+  return RULES.map((r, i) => ({ rule: r.rule, false_positive_rate: ratio(tallies[i].fp, legit), recall: ratio(tallies[i].tp, susp) }));
 }
 
 export function evaluate(dataset: Dataset, thr: FiringThresholds = CALIBRATED): Metrics {
@@ -71,6 +106,8 @@ export function evaluate(dataset: Dataset, thr: FiringThresholds = CALIBRATED): 
     false_positive_rate: ratio(confusion.legitimo.suspeito, legitTotal),
     recall: ratio(confusion.suspeito.suspeito, suspTotal),
     precision: ratio(confusion.suspeito.suspeito, confusion.legitimo.suspeito + confusion.suspeito.suspeito),
+    false_positive_ci: clopperPearson(confusion.legitimo.suspeito, legitTotal),
+    rule_comparison: compareRules(dataset, thr),
     inconclusive_rate: {
       legitimo: ratio(confusion.legitimo.inconclusivo, legitTotal),
       suspeito: ratio(confusion.suspeito.inconclusivo, suspTotal),
@@ -105,6 +142,8 @@ export function renderReadmeBlock(evaluation: Metrics, calibration: Metrics, sta
     "",
     `- Taxa de falso positivo: <!-- fpr -->${pct(m.false_positive_rate)}<!-- /fpr --> ` +
       `(${m.confusion.legitimo.suspeito} de ${m.legit_total} legítimos classificados como suspeito)`,
+    `- Intervalo de 95% da taxa de falso positivo (Clopper-Pearson, exato): ${pct(m.false_positive_ci.low)} a ` +
+      `${pct(m.false_positive_ci.high)}. Com ${m.legit_total} séries legítimas, a taxa medida não é mais precisa que isso.`,
     `- Recall: ${pct(m.recall)} (${m.confusion.suspeito.suspeito} de ${m.suspicious_total} suspeitos detectados)`,
     `- Precisão: ${pct(m.precision)}`,
     `- Inconclusivo: ${pct(m.inconclusive_rate.legitimo)} dos legítimos e ${pct(m.inconclusive_rate.suspeito)} dos suspeitos`,
@@ -115,6 +154,12 @@ export function renderReadmeBlock(evaluation: Metrics, calibration: Metrics, sta
       `${pct(stab.recall.min)} a ${pct(stab.recall.max)}. Faixa exigida pelo teste: falso positivo até ` +
       `${pct(STABILITY_BANDS.false_positive_rate.max)} e recall de ${pct(STABILITY_BANDS.recall.min)} a ` +
       `${pct(STABILITY_BANDS.recall.max)}.`,
+    "",
+    "Regra atual comparada com alternativas, com os mesmos sinais e limiares, na mesma partição:",
+    "",
+    "| regra | falso positivo | recall |",
+    "|---|---|---|",
+    ...m.rule_comparison.map((r) => `| ${r.rule} | ${pct(r.false_positive_rate)} | ${pct(r.recall)} |`),
     "",
     "| verdadeiro \\ previsto | legitimo | suspeito | inconclusivo |",
     "|---|---|---|---|",

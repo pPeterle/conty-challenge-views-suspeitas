@@ -15,6 +15,27 @@
     "false_positive_rate": 0.02524271844660194,
     "recall": 0.675,
     "precision": 0.9356435643564357,
+    "false_positive_ci": {
+      "low": 0.013507612224620436,
+      "high": 0.042779017810297415
+    },
+    "rule_comparison": [
+      {
+        "rule": "atual (queda isolada não acusa)",
+        "false_positive_rate": 0.02524271844660194,
+        "recall": 0.675
+      },
+      {
+        "rule": "um sinal qualquer acusa",
+        "false_positive_rate": 0.19223300970873786,
+        "recall": 0.8
+      },
+      {
+        "rule": "dois sinais acusam; um só fica inconclusivo",
+        "false_positive_rate": 0.017475728155339806,
+        "recall": 0.32142857142857145
+      }
+    ],
     "inconclusive_rate": {
       "legitimo": 0.3145631067961165,
       "suspeito": 0.14285714285714285
@@ -319,6 +340,27 @@
     "false_positive_rate": 0.015533980582524271,
     "recall": 0.6571428571428571,
     "precision": 0.9583333333333334,
+    "false_positive_ci": {
+      "low": 0.00672970723161187,
+      "high": 0.03037777585378426
+    },
+    "rule_comparison": [
+      {
+        "rule": "atual (queda isolada não acusa)",
+        "false_positive_rate": 0.015533980582524271,
+        "recall": 0.6571428571428571
+      },
+      {
+        "rule": "um sinal qualquer acusa",
+        "false_positive_rate": 0.1786407766990291,
+        "recall": 0.7607142857142857
+      },
+      {
+        "rule": "dois sinais acusam; um só fica inconclusivo",
+        "false_positive_rate": 0.011650485436893204,
+        "recall": 0.2892857142857143
+      }
+    ],
     "inconclusive_rate": {
       "legitimo": 0.31844660194174756,
       "suspeito": 0.14285714285714285

@@ -67,6 +67,27 @@ describe("calibração", () => {
   });
 });
 
+describe("honestidade estatística do bloco", () => {
+  it("o intervalo de Clopper-Pearson contém a taxa medida", () => {
+    const { low, high } = evaluation.false_positive_ci;
+    expect(low).toBeLessThanOrEqual(evaluation.false_positive_rate);
+    expect(high).toBeGreaterThanOrEqual(evaluation.false_positive_rate);
+  });
+
+  it("a linha da regra atual na comparação é o mesmo número do README", () => {
+    const [current] = evaluation.rule_comparison;
+    expect(current.false_positive_rate).toBe(evaluation.false_positive_rate);
+    expect(current.recall).toBe(evaluation.recall);
+  });
+
+  it("um sinal qualquer acusa mais que a regra atual, e dois sinais acusam menos", () => {
+    const [current, one, two] = evaluation.rule_comparison;
+    expect(one.recall).toBeGreaterThanOrEqual(current.recall);
+    expect(one.false_positive_rate).toBeGreaterThanOrEqual(current.false_positive_rate);
+    expect(two.false_positive_rate).toBeLessThanOrEqual(current.false_positive_rate);
+  });
+});
+
 describe("estabilidade entre sementes", () => {
   it("em todos os pares de sementes, falso positivo e recall ficam dentro da faixa documentada", () => {
     expect(stab.rows).toHaveLength(SEED_PAIRS.length);

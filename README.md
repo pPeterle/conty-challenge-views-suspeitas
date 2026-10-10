@@ -67,11 +67,20 @@ As regras valem nesta ordem, e a primeira que bate decide:
 Gerado por `npm run evaluate` na partição de **avaliação** (semente 2002, 795 séries, sha256 `413bba59056b`), com os limiares calibrados na outra partição. Classificador 1.0.0.
 
 - Taxa de falso positivo: <!-- fpr -->2,52%<!-- /fpr --> (13 de 515 legítimos classificados como suspeito)
+- Intervalo de 95% da taxa de falso positivo (Clopper-Pearson, exato): 1,35% a 4,28%. Com 515 séries legítimas, a taxa medida não é mais precisa que isso.
 - Recall: 67,50% (189 de 280 suspeitos detectados)
 - Precisão: 93,56%
 - Inconclusivo: 31,46% dos legítimos e 14,29% dos suspeitos
 - Para comparar, na partição de calibração (semente 1001): falso positivo 1,55%, recall 65,71%
 - Estabilidade em 5 pares de sementes (calibra em uma, mede na outra): falso positivo de 1,75% a 2,91% e recall de 63,21% a 67,50%. Faixa exigida pelo teste: falso positivo até 5,00% e recall de 45,00% a 75,00%.
+
+Regra atual comparada com alternativas, com os mesmos sinais e limiares, na mesma partição:
+
+| regra | falso positivo | recall |
+|---|---|---|
+| atual (queda isolada não acusa) | 2,52% | 67,50% |
+| um sinal qualquer acusa | 19,22% | 80,00% |
+| dois sinais acusam; um só fica inconclusivo | 1,75% | 32,14% |
 
 | verdadeiro \ previsto | legitimo | suspeito | inconclusivo |
 |---|---|---|---|
