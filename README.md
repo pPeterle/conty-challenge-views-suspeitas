@@ -2,7 +2,7 @@
 
 API que recebe a série de views por hora de um post e responde se o padrão é compatível com audiência
 humana: `legitimo`, `suspeito` ou `inconclusivo`, com um motivo em português e os sinais medidos. O
-classificador é uma função pura com quatro sinais explicáveis. Junto vêm um dataset sintético reproduzível e
+classificador é uma função pura com seis sinais explicáveis. Junto vêm um dataset sintético reproduzível e
 um comando que mede a taxa de falso positivo e escreve o número neste README.
 
 O critério completo, inclusive o que ele não detecta, está em [docs/criterio.md](docs/criterio.md). Defini o
@@ -43,16 +43,19 @@ futuro dá 422. Campos extras são ignorados. A tabela completa está em [docs/a
 
 | sinal | o que mede | por que separa humano de robô |
 |---|---|---|
-| `pico_sem_cauda` | quanto das views extras do pico ainda aparece nas 10 horas depois dele, num pico de até 3 horas que chega de uma hora para outra | viral é compartilhado e decai aos poucos; lote comprado chega num degrau e para |
+| `pico_sem_cauda` | em cada pico relevante (não só o maior), quanto das views extras ainda aparece nas 10 horas depois dele, num pico de até 3 horas que chega de uma hora para outra | viral é compartilhado e decai aos poucos; lote comprado chega num degrau e para |
 | `queda_abrupta` | maior queda de uma hora para outra que se sustenta, depois de um patamar de pelo menos 30 views/h e maior que 5 desvios de Poisson, sem contar a que se repete no mesmo horário do dia vizinho | pacote de views acaba de uma vez (mas live e destaque também, por isso sozinha não acusa) |
 | `repeticao_mecanica` | menor índice de dispersão (variância / média) em janelas de 12 horas | contagem de pessoas oscila pelo menos como uma Poisson; robô entrega 200, 201, 200 |
-| `rajadas_periodicas` | fração dos intervalos entre rajadas que são exatamente iguais | pessoas não chegam num relógio |
+| `patamar_liso` | menor variação relativa (desvio padrão / média) em 12 horas, num patamar de 3 vezes a mediana da série ou mais | gente em volume alto varia mais que 4%; robô com ruído pequeno, não |
+| `fora_do_ritmo` | nível típico da audiência, aprendido da própria série, nas horas em que aconteceu a queda ou o pico de cauda curta | lote injetado chega quando o público real dorme; sozinho não acusa |
+| `rajadas_periodicas` | fração dos intervalos entre rajadas a até 1 hora de um mesmo intervalo de 2 a 12 horas | pessoas não chegam num relógio, nem com atraso de uma hora |
 
 As regras valem nesta ordem, e a primeira que bate decide:
 
 1. Algum sinal disparou: `suspeito`. Exceção: se só `queda_abrupta` disparou e o patamar antes da queda
    variava como gente, o resultado é `inconclusivo`. Live que termina, post que sai do destaque e viral
-   cortado têm esse mesmo formato. Com outro sinal junto, ou patamar regular demais, continua `suspeito`.
+   cortado têm esse mesmo formato. Com outro sinal junto (inclusive `fora_do_ritmo`), ou patamar regular
+   demais, continua `suspeito`. `fora_do_ritmo` só dispara junto com uma queda ou um pico de cauda curta.
 2. Pico relevante com cauda curta demais para julgar, ou sem horas suficientes depois dele: `inconclusivo`.
 3. Mediana abaixo de 5 views/h e nenhuma hora com 100 views ou mais: `inconclusivo`.
 4. Série com menos de 48 horas: `inconclusivo`.
@@ -153,36 +156,46 @@ Os casos marcados "difícil" estão no dataset de propósito, para o número nã
   vez tem o formato exato de um lote comprado (degrau sem cauda). Distinguir exigiria saber que houve live,
   e isso não está na série. Lives mais longas ficam `inconclusivo`.
 - `criador_pequeno_ruidoso` dá os outros falsos positivos: uma hora de sorte sem nada depois parece
-  `pico_sem_cauda`. A queda abrupta nessas contas quase nunca passa de 5 desvios de Poisson e nem é avaliada.
-- `viral_cortado`, `destaque_plataforma` e boa parte de `live_fim_seco` ficam `inconclusivo`: cauda curta ou
-  queda isolada, que é o formato que eles têm de verdade.
-- `queda_abrupta` (o cenário suspeito) agora fica quase sempre `inconclusivo`. O patamar artificial do dataset
-  tem ruído de gente, e uma queda assim sozinha não basta para acusar. É a perda de recall que aceitei para não
-  acusar live e destaque.
-- `ciclo_diario_forte` não gera falso positivo, porque a queda que se repete todo dia no mesmo horário não
-  conta. Às vezes fica `inconclusivo`: com a noite quase zerada, a mediana é baixa e o pico do dia parece
-  isolado.
+  `pico_sem_cauda`, e às vezes cai numa hora fraca do dia e soma `fora_do_ritmo`.
+- `destaque_plataforma` e `viral_cortado` às vezes acontecem de madrugada; aí a queda deixa de ser isolada
+  (`fora_do_ritmo`) e vira falso positivo. No resto, ficam `inconclusivo`, que é o formato que eles têm.
+- `publico_varios_fusos` fica sempre `inconclusivo`: sem ciclo dia/noite claro, `fora_do_ritmo` não é
+  avaliado, e o destaque vira queda isolada. É o custo de exigir ritmo claro antes de usar ritmo.
+- `queda_abrupta` (o cenário suspeito) fica quase sempre `inconclusivo`. O patamar artificial do dataset tem
+  ruído de gente e acontece em qualquer hora, e uma queda assim sozinha não basta para acusar.
+- `compra_na_semana_do_viral` passa em parte: quando o lote cai ainda na cauda do viral e não chega a 5 vezes
+  o nível do momento, o pico não é relevante.
 - `serie_curta_legitima` é sempre `inconclusivo` (menos de 48 horas); `serie_curta_comprada` às vezes também,
   porque o pico está perto do fim e não dá para ver a cauda.
 - `compra_imitando_organico` e `compra_gradual` passam como `legitimo`. O critério olha só a forma da curva, e
   essa forma é copiável.
 
-### O que mudou nesta versão
+### O que mudou nas últimas versões
 
-Testando com formatos de audiência real que o dataset ainda não tinha (live que termina, post que sai do
-destaque, viral que perde a recomendação), a versão anterior acusava demais, quase sempre por `queda_abrupta`
-disparando sozinha. Mudei quatro coisas:
+Primeira rodada. Testando com formatos de audiência real que o dataset ainda não tinha (live que termina, post
+que sai do destaque, viral que perde a recomendação), a versão anterior acusava demais, quase sempre por
+`queda_abrupta` disparando sozinha. Queda abrupta isolada, com patamar de variação humana, passou a dar
+`inconclusivo`; a queda só conta acima de 5 desvios de Poisson do patamar; a que se repete no mesmo horário do
+dia vizinho deixou de contar; e `pico_sem_cauda` passou a exigir bloco de até 3 horas que chega de uma vez.
 
-- queda abrupta isolada, com patamar de variação humana, passou a dar `inconclusivo`;
-- a queda só conta se passar de 5 desvios de Poisson do patamar, o que tira o ruído de conta pequena;
-- queda que se repete no mesmo horário do dia vizinho deixou de contar (ciclo dia/noite forte);
-- `pico_sem_cauda` passou a exigir bloco de até 3 horas que chega de uma vez, o que tira viral cortado e
-  destaque.
+Segunda rodada. Sondas com formatos que escapavam mostraram pontos cegos, e cada um virou uma mudança com uma
+família nova no dataset para medir ganho e custo:
 
-O dataset ganhou cinco famílias legítimas difíceis (`ciclo_diario_forte`, `live_fim_seco`,
-`destaque_plataforma`, `viral_cortado`, `degrau_permanente`), e os limiares foram recalibrados só na partição
-de calibração. O número acima é o novo, medido nesse dataset mais difícil. O recall caiu porque o cenário
-`queda_abrupta` deixou de ser acusado.
+- `pico_sem_cauda` passou a julgar todos os picos relevantes, não só o maior (compra pequena na semana de um
+  viral real: `compra_na_semana_do_viral` e, para o custo, `dois_virais`);
+- novo `patamar_liso`, para robô com 1% a 3% de ruído que escapava do índice de dispersão
+  (`plato_ruido_pequeno`; custo medido em `canal_grande_liso`, que continua legítimo);
+- `rajadas_periodicas` aceita intervalo com ±1 hora de folga (`bot_periodico_jitter`; sem custo em
+  `ciclo_diario_forte`);
+- novo `fora_do_ritmo`, que aprende o ritmo dia/noite da própria série e, junto com uma queda ou pico de cauda
+  curta, acusa o lote injetado de madrugada (`injecao_madrugada`; custo em `publico_varios_fusos`). As lives do
+  dataset passaram a começar com o público acordado, como acontece de verdade;
+- o bloco de métricas ganhou o intervalo exato de Clopper-Pearson da taxa de falso positivo e uma comparação
+  da regra atual com "um sinal acusa" e "dois sinais acusam".
+
+Em cada passo recalibrei só na partição de calibração e publiquei o número que saiu. A tabela de comparação
+mostra por que a queda isolada não acusa: com os mesmos sinais, "um sinal qualquer acusa" multiplica o falso
+positivo.
 
 ### Quando ele prefere não acusar
 
@@ -213,11 +226,7 @@ comprado, 4.900 views entram numa hora só. O teste
 | orgânico | `legitimo` | 3,0955 (as 10 horas seguintes somam 310% do excesso do pico) | não |
 | comprado | `suspeito` | 0,0033 | sim |
 
-O motivo real do comprado: "Suspeito: padrão que merece revisão humana. Na hora 40 o post teve 5.000 views,
-50 vezes a linha de base de 100 views/h, num pico de 1 hora. O pico chegou de uma hora para outra. Nas 10
-horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem
-a cauda de decaimento de um vídeo que estoura de verdade. Degrau de até 3 horas que some sem cauda (abaixo de
-30%) é o formato de views entregues em lote." A resposta completa, com os quatro
+O motivo real do comprado: "Suspeito: padrão que merece revisão humana. Na hora 40 o post teve 5.000 views, 50 vezes a linha de base de 100 views/h, num pico de 1 hora. O pico chegou de uma hora para outra. Nas 10 horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo que estoura de verdade. Degrau de até 3 horas que some sem cauda (abaixo de 20%) é o formato de views entregues em lote." A resposta completa, com todos os
 sinais, está em [docs/api.md](docs/api.md#exemplos-reais).
 
 ## Por que não um modelo treinado opaco (ou um LLM)

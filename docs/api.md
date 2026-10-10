@@ -95,21 +95,21 @@ curl -s -X POST localhost:3107/classify -H 'content-type: application/json' -d @
   "published_at": "2026-10-01T00:00:00.000Z",
   "classifier_version": "1.0.0",
   "classification": "suspeito",
-  "reason": "Suspeito: padrão que merece revisão humana. Na hora 40 o post teve 5.000 views, 50 vezes a linha de base de 100 views/h, num pico de 1 hora. O pico chegou de uma hora para outra. Nas 10 horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo que estoura de verdade. Degrau de até 3 horas que some sem cauda (abaixo de 30%) é o formato de views entregues em lote.",
+  "reason": "Suspeito: padrão que merece revisão humana. Na hora 40 o post teve 5.000 views, 50 vezes a linha de base de 100 views/h, num pico de 1 hora. O pico chegou de uma hora para outra. Nas 10 horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo que estoura de verdade. Degrau de até 3 horas que some sem cauda (abaixo de 20%) é o formato de views entregues em lote.",
   "signals": [
     {
       "name": "pico_sem_cauda",
       "value": 0.0033,
-      "threshold": 0.3,
+      "threshold": 0.2,
       "fires_when": "below",
       "evaluated": true,
       "fired": true,
-      "detail": "Na hora 40 o post teve 5.000 views, 50 vezes a linha de base de 100 views/h, num pico de 1 hora. O pico chegou de uma hora para outra. Nas 10 horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo que estoura de verdade. Degrau de até 3 horas que some sem cauda (abaixo de 30%) é o formato de views entregues em lote."
+      "detail": "Na hora 40 o post teve 5.000 views, 50 vezes a linha de base de 100 views/h, num pico de 1 hora. O pico chegou de uma hora para outra. Nas 10 horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo que estoura de verdade. Degrau de até 3 horas que some sem cauda (abaixo de 20%) é o formato de views entregues em lote."
     },
     {
       "name": "queda_abrupta",
       "value": null,
-      "threshold": 0.9,
+      "threshold": 0.65,
       "fires_when": "at_or_above",
       "evaluated": false,
       "fired": false,
@@ -125,9 +125,27 @@ curl -s -X POST localhost:3107/classify -H 'content-type: application/json' -d @
       "detail": "A janela de 12 horas mais regular (horas 9 a 20) teve índice de dispersão 0,34, variação compatível com pessoas (dispara abaixo de 0,20)."
     },
     {
+      "name": "patamar_liso",
+      "value": 2.7735,
+      "threshold": 0.04,
+      "fires_when": "below",
+      "evaluated": true,
+      "fired": false,
+      "detail": "O patamar mais liso acima do resto da série (horas 30 a 41, 510 views/h) variou 277,4%, como audiência real (dispara abaixo de 4%)."
+    },
+    {
+      "name": "fora_do_ritmo",
+      "value": null,
+      "threshold": 0.6,
+      "fires_when": "below",
+      "evaluated": false,
+      "fired": false,
+      "detail": "Não avaliado: a série não tem ciclo dia/noite claro (as horas fracas têm 96% das views das fortes), como acontece com público em vários fusos."
+    },
+    {
       "name": "rajadas_periodicas",
       "value": null,
-      "threshold": 1,
+      "threshold": 0.8,
       "fires_when": "at_or_above",
       "evaluated": false,
       "fired": false,
@@ -141,7 +159,7 @@ curl -s -X POST localhost:3107/classify -H 'content-type: application/json' -d @
     "peak_views": 5000,
     "peak_hour": 40
   },
-  "classified_at": "2026-10-10T04:22:51.794Z"
+  "classified_at": "2026-10-10T13:12:05.091Z"
 }
 ```
 
@@ -162,7 +180,7 @@ HTTP 400
 
 # pico-comprado.json com published_at 2026-10-09T00:00:00Z
 HTTP 422
-{"error":{"code":"SERIES_IN_FUTURE","message":"A série tem 96 horas a partir de 2026-10-09T00:00:00.000Z, então a última hora começaria em 2026-10-12T23:00:00.000Z, depois do horário atual (2026-10-10T04:22:51.871Z)."}}
+{"error":{"code":"SERIES_IN_FUTURE","message":"A série tem 96 horas a partir de 2026-10-09T00:00:00.000Z, então a última hora começaria em 2026-10-12T23:00:00.000Z, depois do horário atual (2026-10-10T13:12:05.110Z)."}}
 
 # sem Content-Type
 HTTP 415
