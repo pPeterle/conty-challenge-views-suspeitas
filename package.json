@@ -8,6 +8,7 @@
     "test": "NODE_OPTIONS='--disable-warning=ExperimentalWarning' vitest run",
     "typecheck": "tsc --noEmit",
     "dataset": "tsx scripts/dataset.ts",
+    "calibrate": "tsx scripts/calibrate.ts",
     "evaluate": "tsx scripts/evaluate.ts",
     "load": "bash scripts/load.sh"
   },
