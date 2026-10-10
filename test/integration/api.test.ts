@@ -1,3 +1,5 @@
+import { serve } from "@hono/node-server";
+import type { AddressInfo } from "node:net";
 import { beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../../src/app.ts";
 import { CALIBRATED } from "../../src/classifier/thresholds.ts";
@@ -95,15 +97,18 @@ describe("POST /classify", () => {
     expect(listClassifications(db)).toHaveLength(20);
   });
 
-  it("GET /classifications/:id devolve a classificação gravada e 404 quando não existe", async () => {
+  it("GET /classifications/:id devolve a classificação gravada, 404 quando não existe e 400 com id malformado", async () => {
     const created = await (await post(body(steady(96)))).text();
     const { id } = JSON.parse(created);
     const res = await app.request(`/classifications/${id}`);
     expect(res.status).toBe(200);
     expect(await res.text()).toBe(created);
-    const missing = await app.request("/classifications/nao-existe");
+    const missing = await app.request(`/classifications/${"0".repeat(64)}`);
     expect(missing.status).toBe(404);
     expect((await missing.json()).error.code).toBe("NOT_FOUND");
+    const malformed = await app.request("/classifications/nao-existe");
+    expect(malformed.status).toBe(400);
+    expect((await malformed.json()).error.code).toBe("VALIDATION_ERROR");
   });
 });
 
@@ -120,7 +125,7 @@ describe("validação da série", () => {
       { ...body(steady(48)), points: body(steady(48)).points.filter((p) => p.hour !== 5) },
       400,
       "VALIDATION_ERROR",
-      /points\[5\]\.hour deveria ser 5/,
+      /points\[5\]\.hour: deveria ser 5/,
     ],
     [
       "views negativas",
@@ -157,5 +162,29 @@ describe("validação da série", () => {
   it("série que termina exatamente agora é aceita", async () => {
     const res = await post(body(steady(48), "p", "2026-10-08T13:00:00.000Z"));
     expect(res.status).toBe(200);
+  });
+});
+
+describe("servidor HTTP real", () => {
+  it("responde 200 a séries diferentes em sequência e repete a resposta da primeira", async () => {
+    const server = serve({ fetch: createApp({ db: openDb(":memory:"), clock: new FixedClock(NOW) }).fetch, port: 0 });
+    await new Promise((resolve) => server.once("listening", resolve));
+    const { port } = server.address() as AddressInfo;
+    const send = (payload: unknown) =>
+      fetch(`http://127.0.0.1:${port}/classify`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+    try {
+      const first = await send(body(steady(96), "a"));
+      const second = await send(body(withBoughtPeak(steady(96), 40, 5000), "b"));
+      const again = await send(body(steady(96), "a"));
+      expect([first.status, second.status, again.status]).toEqual([200, 200, 200]);
+      const [t1, , t3] = await Promise.all([first.text(), second.text(), again.text()]);
+      expect(t3).toBe(t1);
+    } finally {
+      server.close();
+    }
   });
 });
