@@ -1,6 +1,7 @@
 # Critério de classificação
 
-Este documento é a especificação do classificador. Escrevi a primeira versão antes do código. Os parâmetros
+Este documento é a especificação do classificador. Defini o critério antes de implementar, e a primeira
+versão deste texto veio antes do código (ver a nota de uso de IA no README). Os parâmetros
 fixos (janelas, mínimos de volume) estão em `src/classifier/thresholds.ts`. Os quatro limiares de disparo são
 escolhidos por `npm run calibrate` e gravados em `src/classifier/thresholds.json`; a tabela abaixo é gerada pelo
 mesmo comando, e um teste falha se ela divergir do arquivo.
@@ -12,8 +13,9 @@ Uma série de views **incrementais** por hora desde a publicação: `points[i] =
 consecutivas, sem buracos. Escolhi incremental porque todos os sinais olham para a forma da curva hora a
 hora; com o acumulado, quem chama faria a diferença e eu teria de validar monotonicidade.
 
-A API recusa com 400 série com menos de 24 horas, com hora faltando ou fora de ordem, views negativas ou não
-inteiras, e mais de 2160 horas (90 dias). Recusa com 422 a série que termina depois do "agora" do servidor
+A API valida o corpo com zod (`src/schemas.ts`) e recusa com 400 série com menos de 24 horas ou mais de 2160
+(90 dias), hora faltando, repetida ou fora de ordem, views negativas, não inteiras ou acima de 1 bilhão por
+hora, e `published_at` que não seja data e hora ISO 8601 existente com fuso. Recusa com 422 a série que termina depois do "agora" do servidor
 (`published_at` + horas maior que o relógio).
 
 ## Saída
@@ -34,16 +36,16 @@ Os valores usados na versão inicial, escolhidos à mão antes de existir calibr
 como.
 
 <!-- thresholds:start -->
-Gerado por `npm run calibrate` na partição de calibração (semente 1001). Regra: maximizar recall com falso positivo <= 2% na partição de calibração. 875 combinações testadas, 80 dentro da meta.
+Gerado por `npm run calibrate` na partição de calibração (semente 1001). Regra: maximizar recall com falso positivo <= 2% na partição de calibração. 875 combinações testadas, 165 dentro da meta.
 
 | sinal | dispara quando o valor fica | limiar escolhido | candidatos |
 |---|---|---|---|
-| pico_sem_cauda | abaixo de | 0,1 | 0,1; 0,2; 0,3; 0,4; 0,5 |
+| pico_sem_cauda | abaixo de | 0,3 | 0,1; 0,2; 0,3; 0,4; 0,5 |
 | queda_abrupta | igual ou acima de | 0,8 | 0,9; 0,85; 0,8; 0,75; 0,7; 0,65; 0,6 |
-| repeticao_mecanica | abaixo de | 0,05 | 0,05; 0,1; 0,2; 0,3; 0,5 |
+| repeticao_mecanica | abaixo de | 0,2 | 0,05; 0,1; 0,2; 0,3; 0,5 |
 | rajadas_periodicas | igual ou acima de | 1 | 1; 0,9; 0,8; 0,7; 0,6 |
 
-Na calibração: falso positivo 1,61%, recall 74,44%.
+Na calibração: falso positivo 1,76%, recall 71,67%.
 <!-- thresholds:end -->
 
 ## Sinais
@@ -76,6 +78,9 @@ Para cada hora `t` com pelo menos 6 horas antes e 3 depois:
 - Só avalia se `antes >= 30` views/h (abaixo disso, ruído de contagem produz quedas grandes à toa).
 - Queda na hora: `1 - x[t] / x[t-1]`. Queda sustentada: `1 - depois / antes`.
 - Valor de `t`: o menor dos dois (as duas coisas precisam acontecer).
+- Queda sazonal não conta: se a queda sustentada no mesmo horário 24 horas antes ou 24 horas depois também
+  passa de 50%, é a noite chegando, e a hora `t` é ignorada. Sem isso, audiência concentrada num fuso, com
+  noite perto de zero, virava suspeita todo dia.
 
 O valor do sinal é o maior entre todos os `t` avaliados. Dispara se for igual ou maior que o limiar calibrado.
 
@@ -114,8 +119,10 @@ Na ordem, a primeira regra que bate decide:
 1. Série com menos de 24 horas: `inconclusivo` (a API nem chega aqui, devolve 400).
 2. Algum sinal disparou: `suspeito`. O motivo junta a explicação de cada sinal que disparou.
 3. Pico relevante com cauda na zona cinza (entre o limiar calibrado e 0,8) ou não observável: `inconclusivo`.
-4. Volume baixo (mediana `< 5` views/h e máximo `< 100`): `inconclusivo`. Com tão poucas views, ruído e padrão
-   ficam parecidos e nenhum sinal tem força.
+4. Volume baixo: mediana abaixo de 5 views/h **e** nenhuma hora com 100 views ou mais: `inconclusivo`. Com
+   tão poucas views, ruído e padrão ficam parecidos. Esta regra só vale quando nenhum sinal disparou (regra
+   2): uma conta pequena com um sinal disparado continua `suspeito`, e uma com mediana baixa mas alguma hora
+   de 100 views ou mais segue para as regras seguintes.
 5. Série com menos de 48 horas: `inconclusivo`. Cedo demais para afirmar que é legítima.
 6. Caso contrário: `legitimo`.
 
@@ -163,12 +170,16 @@ observar. Há um teste para isso (`test/unit/classify.test.ts`) e um exemplo no 
 - **Pico comprado no fim da série.** Cai em `inconclusivo` até haver horas suficientes depois.
 - **Mais de um pico.** Só o maior pico é examinado por `pico_sem_cauda`. Um pico comprado menor que um viral
   orgânico no mesmo post passa.
-- **Contas pequenas.** Abaixo de 5 views/h de mediana o resultado é `inconclusivo`. Pior: criador pequeno com
-  ruído muito alto e sem correlação entre horas é a principal fonte de falso positivo no dataset. Uma hora
+- **Contas pequenas.** Com mediana abaixo de 5 views/h, nenhuma hora com 100 views ou mais e nenhum sinal
+  disparado, o resultado é `inconclusivo` (regra 4). Pior: criador pequeno com ruído muito alto e sem
+  correlação entre horas é a principal fonte de falso positivo no dataset. Uma hora
   boa seguida de uma hora fraca parece `queda_abrupta`, e um pico casual sem cauda parece `pico_sem_cauda`.
 - **Causas legítimas de queda abrupta.** Post apagado, arquivado, tornado privado ou retirado de uma
   recomendação também derruba views de uma hora para outra. O sinal descreve o formato, não a intenção;
   `suspeito` quer dizer "merece revisão humana", não "fraude comprovada".
+- **Corte que coincide com a noite.** A regra de queda sazonal ignora uma queda quando o mesmo horário do dia
+  anterior ou seguinte também cai. Um pacote de views que acaba bem na hora em que a audiência real vai
+  dormir pode passar, e um robô que liga e desliga no mesmo horário todo dia também.
 - **Ausência de ciclo dia/noite.** Pensei em usar, mas depende do fuso da audiência, e audiência
   internacional achata o ciclo. Ficou de fora.
 
@@ -186,6 +197,7 @@ verdadeiro:
 | legítimo, difícil | `viral_relampago` | viral que sobe e esfria em 1 a 3 horas |
 | legítimo, difícil | `viral_subida_rapida` | viral que decola em menos de uma hora |
 | legítimo, difícil | `criador_pequeno_ruidoso` | 3 a 40 views/h com ruído muito alto e sem correlação entre horas |
+| legítimo, difícil | `ciclo_diario_forte` | ciclo dia/noite com amplitude de 0,8 a 0,95, ou noite cortada quase a zero |
 | legítimo, difícil | `serie_curta_legitima` | audiência normal, só 24 a 47 horas de série |
 | suspeito | `pico_comprado` | série orgânica mais um bloco de 1 a 3 horas de 10 a 60 vezes a base |
 | suspeito | `plato_mecanico` | patamar quase constante entregue por robô sobre pouca audiência real |

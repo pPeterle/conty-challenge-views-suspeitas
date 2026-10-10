@@ -121,7 +121,9 @@ export function renderReadmeBlock(evaluation: Metrics, calibration: Metrics): st
     "",
     `Falsos positivos na avaliação: ${m.false_positives.length === 0 ? "nenhum" : m.false_positives.join(", ")}.`,
     "",
-    "Folga dos limiares: valor medido na série legítima que chegou mais perto de disparar cada sinal.",
+    "Folga dos limiares: valor medido na série legítima que chegou mais perto de disparar cada sinal. Em " +
+      "rajadas_periodicas o valor só conta com intervalo de 2 a 12 horas; valor alto com intervalo de 24 horas " +
+      "(ciclo diário) não dispara.",
     "",
     "| sinal | dispara quando | limiar | legítimo mais próximo | série |",
     "|---|---|---|---|---|",
@@ -152,4 +154,21 @@ export function extractBlock(text: string, startMark = README_START, endMark = R
 export function parseReadmeFpr(readme: string): number | null {
   const match = readme.match(/<!-- fpr -->\s*([\d.,]+)%\s*<!-- \/fpr -->/);
   return match ? Number(match[1].replace(",", ".")) / 100 : null;
+}
+
+/**
+ * Compara o README com o que foi medido. Devolve a lista de divergências (vazia quando bate). É o que o teste
+ * usa, e também o que prova que um README adulterado é pego.
+ */
+export function readmeDivergences(readme: string, evaluation: Metrics, calibration: Metrics): string[] {
+  const problems: string[] = [];
+  const written = parseReadmeFpr(readme);
+  if (written === null) problems.push("README sem o marcador <!-- fpr -->...<!-- /fpr -->");
+  else if (written.toFixed(4) !== evaluation.false_positive_rate.toFixed(4)) {
+    problems.push(`taxa no README ${pct(written)} difere da medida ${pct(evaluation.false_positive_rate)}`);
+  }
+  if (extractBlock(readme) !== renderReadmeBlock(evaluation, calibration)) {
+    problems.push("bloco de métricas do README difere do gerado por npm run evaluate");
+  }
+  return problems;
 }

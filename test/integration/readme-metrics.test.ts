@@ -9,7 +9,7 @@ import {
   evaluate,
   extractBlock,
   parseReadmeFpr,
-  renderReadmeBlock,
+  readmeDivergences,
   replaceBlock,
 } from "../../src/evaluation/metrics.ts";
 import storedCalibration from "../../src/classifier/thresholds.json" with { type: "json" };
@@ -21,21 +21,24 @@ const evaluation = evaluate(avaliacao);
 const calibration = evaluate(calibracao);
 
 describe("taxa de falso positivo do README", () => {
-  it("a taxa de falso positivo escrita no README é a medida na partição de avaliação", () => {
-    const written = parseReadmeFpr(readme);
-    expect(written, "README sem o marcador <!-- fpr -->...<!-- /fpr -->").not.toBeNull();
-    // O README guarda 2 casas em porcentagem; comparo com a mesma precisão.
-    expect(written!.toFixed(4)).toBe(evaluation.false_positive_rate.toFixed(4));
+  it("a taxa de falso positivo e o bloco de métricas do README são os medidos na partição de avaliação", () => {
+    expect(parseReadmeFpr(readme), "README sem o marcador <!-- fpr -->").not.toBeNull();
+    expect(readmeDivergences(readme, evaluation, calibration)).toEqual([]);
   });
 
-  it("o bloco de métricas do README é exatamente o que npm run evaluate gera", () => {
-    expect(extractBlock(readme)).toBe(renderReadmeBlock(evaluation, calibration));
+  it("um README com a taxa trocada à mão é reprovado pela mesma checagem", () => {
+    const tampered = readme.replace(/<!-- fpr -->[^<]*<!-- \/fpr -->/, "<!-- fpr -->0,00%<!-- /fpr -->");
+    expect(tampered).not.toBe(readme);
+    const problems = readmeDivergences(tampered, evaluation, calibration);
+    expect(problems.some((p) => p.startsWith("taxa no README 0,00%"))).toBe(true);
   });
 
-  it("um README com número escrito à mão diferente do medido é detectado", () => {
-    const tampered = readme.replace(/<!-- fpr -->[^<]*<!-- \/fpr -->/, "<!-- fpr -->12,34%<!-- /fpr -->");
-    expect(parseReadmeFpr(tampered)).toBeCloseTo(0.1234);
-    expect(parseReadmeFpr(tampered)!.toFixed(4)).not.toBe(evaluation.false_positive_rate.toFixed(4));
+  it("um README com uma linha da tabela editada é reprovado", () => {
+    const tampered = readme.replace(/\| legitimo \| (\d+) \|/, (_m, n) => `| legitimo | ${Number(n) + 1} |`);
+    expect(tampered).not.toBe(readme);
+    expect(readmeDivergences(tampered, evaluation, calibration)).toContain(
+      "bloco de métricas do README difere do gerado por npm run evaluate",
+    );
   });
 
   it("replaceBlock troca só o trecho entre os marcadores", () => {

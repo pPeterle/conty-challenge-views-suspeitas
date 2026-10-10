@@ -4,7 +4,6 @@ import { type FiringThresholds, PARAMS } from "./thresholds.ts";
 export type Label = "legitimo" | "suspeito" | "inconclusivo";
 
 export type Rule =
-  | "serie_curta"
   | "sinal_disparou"
   | "cauda_nao_observavel"
   | "cauda_zona_cinza"
@@ -49,11 +48,13 @@ export function isGrayPeak(m: Measurements, thr: FiringThresholds): boolean {
   );
 }
 
-/** Regras de combinação, na ordem de docs/criterio.md. A primeira que bate decide. */
+/**
+ * Regras de combinação, na ordem de docs/criterio.md. A primeira que bate decide. Série com menos de
+ * PARAMS.minHours nem chega aqui: classify devolve inconclusivo antes de medir.
+ */
 export function decide(m: Measurements, thr: FiringThresholds, peakViews: number): Decision {
   const fired = firedSignals(m, thr);
   const make = (label: Label, rule: Rule): Decision => ({ label, rule, fired });
-  if (m.hours < PARAMS.minHours) return make("inconclusivo", "serie_curta");
   if (Object.values(fired).some(Boolean)) return make("suspeito", "sinal_disparou");
   if (m.peak.status === "unobservable") return make("inconclusivo", "cauda_nao_observavel");
   if (isGrayPeak(m, thr)) return make("inconclusivo", "cauda_zona_cinza");

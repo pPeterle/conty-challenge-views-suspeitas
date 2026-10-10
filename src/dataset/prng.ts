@@ -51,9 +51,4 @@ export class Rng {
     }
     return Math.max(0, Math.round(this.normal(lambda, Math.sqrt(lambda))));
   }
-
-  /** Contagem de pessoas: Poisson com média perturbada por fator log-normal (superdispersão). */
-  humanCount(meanViews: number, sigma: number): number {
-    return this.poisson(meanViews * Math.exp(this.normal(0, sigma) - (sigma * sigma) / 2));
-  }
 }

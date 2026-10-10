@@ -23,7 +23,7 @@ export const PARAMS = {
   minHoursForLegit: 48,
   lowVolume: { maxMedian: 5, maxPeak: 100 },
   peak: { minRatioToBase: 5, minExcess: 100, blockFraction: 0.5, tailHours: 10, maxBlockWidth: 6, tailGray: 0.8 },
-  drop: { windowBefore: 6, windowAfter: 6, minAfterHours: 3, minLevelBefore: 30 },
+  drop: { windowBefore: 6, windowAfter: 6, minAfterHours: 3, minLevelBefore: 30, seasonalLag: 24, seasonalDrop: 0.5 },
   mechanical: { window: 12, minMean: 10 },
   periodic: { localWindow: 12, burstRatio: 3, burstMinExcess: 50, minBursts: 4, minPeriod: 2, maxPeriod: 12 },
 } as const;

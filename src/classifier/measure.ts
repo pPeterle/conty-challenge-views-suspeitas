@@ -39,12 +39,31 @@ function measurePeak(x: readonly number[], base: number): Measurements["peak"] {
   return { status: "measured", ...common, tail: tailSum / excess };
 }
 
+/** Queda sustentada na hora i (1 - mediana depois / mediana antes), ou null se não há janela completa. */
+function sustainedDrop(x: readonly number[], i: number): number | null {
+  const t = PARAMS.drop;
+  if (i - t.windowBefore < 0 || i + t.minAfterHours > x.length) return null;
+  const before = median(x.slice(i - t.windowBefore, i));
+  if (before <= 0) return null;
+  return 1 - median(x.slice(i, Math.min(x.length, i + t.windowAfter))) / before;
+}
+
+/**
+ * Queda que se repete no mesmo horário um dia antes ou depois é a noite chegando, não um pacote que acabou.
+ * Sem essa regra, audiência com ciclo dia/noite muito forte virava suspeita.
+ */
+function isSeasonal(x: readonly number[], i: number): boolean {
+  const t = PARAMS.drop;
+  return [i - t.seasonalLag, i + t.seasonalLag].some((j) => (sustainedDrop(x, j) ?? 0) >= t.seasonalDrop);
+}
+
 function measureDrop(x: readonly number[]): Measurements["drop"] {
   const t = PARAMS.drop;
   let best: Measurements["drop"] = null;
   for (let i = t.windowBefore; i + t.minAfterHours - 1 < x.length; i++) {
     const before = median(x.slice(i - t.windowBefore, i));
     if (before < t.minLevelBefore) continue;
+    if (isSeasonal(x, i)) continue;
     const after = median(x.slice(i, Math.min(x.length, i + t.windowAfter)));
     const hourDrop = x[i - 1] > 0 ? 1 - x[i] / x[i - 1] : 0;
     // As duas coisas precisam acontecer: cair na hora e continuar baixo.

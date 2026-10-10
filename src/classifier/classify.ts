@@ -1,5 +1,5 @@
 import { decide, type Label } from "./decide.ts";
-import { fmtInt, plural } from "./format.ts";
+import { fmtRate, plural } from "./format.ts";
 import { measure } from "./measure.ts";
 import { buildSignals, type Signal } from "./signals.ts";
 import { median } from "./stats.ts";
@@ -63,7 +63,7 @@ export function classify(views: readonly number[], thr: FiringThresholds = CALIB
   let reason: string;
   switch (decision.rule) {
     case "sinal_disparou":
-      reason = `Suspeito: padrão incompatível com audiência humana. ${signals
+      reason = `Suspeito: padrão que merece revisão humana. ${signals
         .filter((s) => s.fired)
         .map((s) => s.detail)
         .join(" ")}`;
@@ -76,8 +76,8 @@ export function classify(views: readonly number[], thr: FiringThresholds = CALIB
       break;
     case "volume_baixo":
       reason =
-        `Inconclusivo: volume baixo demais (mediana de ${fmtInt(summary.median_views_per_hour)} views/h e ` +
-        `máximo de ${fmtInt(summary.peak_views)}). Com tão poucas views, ruído normal e padrão artificial ` +
+        `Inconclusivo: volume baixo demais (mediana de ${fmtRate(summary.median_views_per_hour)} e ` +
+        `máximo de ${plural(summary.peak_views, "view", "views")} numa hora). Com tão poucas views, ruído normal e padrão artificial ` +
         `ficam parecidos.`;
       break;
     case "pouco_historico":

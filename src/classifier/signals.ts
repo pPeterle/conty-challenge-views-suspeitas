@@ -1,5 +1,5 @@
 import type { Fired } from "./decide.ts";
-import { fmtDec, fmtInt, fmtPct, fmtRatio, plural } from "./format.ts";
+import { fmtDec, fmtInt, fmtPct, fmtRate, fmtRatio, plural } from "./format.ts";
 import type { Measurements } from "./measure.ts";
 import { round4 } from "./stats.ts";
 import { type FiringThresholds, PARAMS } from "./thresholds.ts";
@@ -49,13 +49,13 @@ function peakSignal(m: Measurements, thr: FiringThresholds, fired: boolean): Sig
       evaluated: false,
       detail:
         `Sem pico relevante: a maior hora (hora ${pk.hour}) teve ${fmtInt(pk.views)} views para uma linha de base ` +
-        `de ${fmtInt(m.base)}/h. Um pico só é examinado quando passa de ${t.minRatioToBase} vezes a base e de ` +
+        `de ${fmtRate(m.base)}. Um pico só é examinado quando passa de ${t.minRatioToBase} vezes a base e de ` +
         `${t.minExcess} views acima dela.`,
     };
   }
   const peakText =
     `Na hora ${pk.hour} o post teve ${fmtInt(pk.views)} views, ${fmtRatio(pk.ratio)} vezes a linha de base de ` +
-    `${fmtInt(m.base)}/h, num pico de ${plural(pk.width, "hora", "horas")}.`;
+    `${fmtRate(m.base)}, num pico de ${plural(pk.width, "hora", "horas")}.`;
   if (pk.status === "unobservable") {
     return {
       ...base,
@@ -94,14 +94,14 @@ function dropSignal(m: Measurements, thr: FiringThresholds, fired: boolean): Sig
       value: null,
       evaluated: false,
       detail:
-        `Não avaliado: em nenhum trecho as views ficaram em ${t.minLevelBefore}/h ou mais por ` +
+        `Não avaliado: em nenhum trecho as views ficaram em ${t.minLevelBefore} views/h ou mais por ` +
         `${t.windowBefore} horas, nível abaixo do qual o ruído normal já produz quedas grandes.`,
     };
   }
   const detail = fired
     ? `Na hora ${d.hour} as views caíram de ${fmtInt(d.from)} para ${fmtInt(d.to)} de uma hora para outra, ` +
-      `depois de um patamar de ${fmtInt(d.before)}/h nas ${t.windowBefore} horas anteriores, e ficaram em ` +
-      `${fmtInt(d.after)}/h. Queda de ${fmtPct(d.value)} (limiar ${fmtPct(thr.drop)}): audiência humana ` +
+      `depois de um patamar de ${fmtRate(d.before)} nas ${t.windowBefore} horas anteriores, e ficaram em ` +
+      `${fmtRate(d.after)}. Queda de ${fmtPct(d.value)} (limiar ${fmtPct(thr.drop)}): audiência humana ` +
       `desacelera aos poucos, e um corte assim lembra um pacote de views que acabou.`
     : `A maior queda sustentada de uma hora para outra foi de ${fmtPct(Math.max(0, d.value))}, na hora ${d.hour} ` +
       `(dispara a partir de ${fmtPct(thr.drop)}).`;
@@ -127,7 +127,7 @@ function mechanicalSignal(m: Measurements, thr: FiringThresholds, fired: boolean
   }
   const end = w.start + t.window - 1;
   const detail = fired
-    ? `Entre as horas ${w.start} e ${end} as views ficaram em torno de ${fmtInt(w.mean)}/h quase sem variar ` +
+    ? `Entre as horas ${w.start} e ${end} as views ficaram em torno de ${fmtRate(w.mean)} quase sem variar ` +
       `(${w.sample.map(fmtInt).join(", ")}, ...). O índice de dispersão foi ${fmtDec(w.dispersion)}; contagem ` +
       `de pessoas reais oscila pelo menos tanto quanto a média (índice perto de 1 ou acima), e abaixo de ` +
       `${fmtDec(thr.mechanical_dispersion)} é ritmo de máquina.`

@@ -132,6 +132,45 @@ describe("casos óbvios", () => {
   });
 });
 
+describe("ciclo dia/noite forte", () => {
+  // Noite perto de zero: views caem de centenas para quase nada todo dia, sempre no mesmo horário.
+  const strongNight = (amp: number) =>
+    Array.from({ length: 168 }, (_, t) => Math.round(80 * (1 + amp * Math.sin((2 * Math.PI * t) / 24)) + ((t * 7) % 5)));
+  const clippedNight = Array.from({ length: 168 }, (_, t) =>
+    Math.round(300 * Math.max(0.02, Math.sin((2 * Math.PI * t) / 24)) + ((t * 7) % 5)),
+  );
+
+  it.each([0.8, 0.9, 0.95])("ciclo com amplitude %s não vira queda abrupta", (amp) => {
+    const result = classify(strongNight(amp));
+    expect(signal(result, "queda_abrupta").fired).toBe(false);
+    expect(result.classification).not.toBe("suspeito");
+  });
+
+  it("noite cortada quase a zero todo dia não vira queda abrupta", () => {
+    const result = classify(clippedNight);
+    expect(signal(result, "queda_abrupta").fired).toBe(false);
+    expect(result.classification).not.toBe("suspeito");
+  });
+
+  it("um corte que não se repete no dia seguinte continua sendo queda abrupta", () => {
+    const cut = clippedNight.map((v, t) => (t >= 50 && t < 98 ? v + 3000 : v));
+    expect(signal(classify(cut), "queda_abrupta").fired).toBe(true);
+  });
+});
+
+describe("texto do motivo", () => {
+  it("linha de base abaixo de 1 aparece como menos de 1 view/h, e 1 no singular", () => {
+    const zeros = Array.from({ length: 96 }, (_, t) => (t === 40 ? 500 : 0));
+    expect(classify(zeros).reason).toContain("linha de base de menos de 1 view/h");
+    const ones = Array.from({ length: 96 }, (_, t) => (t === 40 ? 500 : 1));
+    expect(classify(ones).reason).toContain("linha de base de 1 view/h");
+  });
+
+  it("suspeito é apresentado como algo que merece revisão, não como fraude comprovada", () => {
+    expect(classify(withBoughtPeak(steady(96), 40, 5000)).reason).toMatch(/^Suspeito: padrão que merece revisão humana\./);
+  });
+});
+
 describe("explicabilidade e determinismo", () => {
   const cases = {
     legitimo: dailyCycle(96),

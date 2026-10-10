@@ -112,6 +112,17 @@ const generators = {
     return humanViews(rng, expected, rng.uniform(0.3, 0.5));
   },
 
+  // Audiência concentrada num fuso, com noite perto de zero (metade das séries corta a noite de vez).
+  ciclo_diario_forte(rng, n) {
+    const level = logUniform(rng, 20, 300);
+    const phase = rng.uniform(0, 24);
+    const expected =
+      rng.random() < 0.5
+        ? dailyAudience(rng, n, level, [0.8, 0.95])
+        : Array.from({ length: n }, (_, t) => 2 * level * Math.max(0.02, Math.sin((2 * Math.PI * (t + phase)) / 24)));
+    return humanViews(rng, expected, rng.uniform(0.1, 0.3));
+  },
+
   // Viral real que decola quase de uma hora para outra (ex.: compartilhado por uma conta grande).
   viral_subida_rapida(rng, n) {
     return humanViews(rng, viralCurve(rng, n, [0.3, 1], [3, 12]), rng.uniform(0.1, 0.3));
@@ -201,6 +212,7 @@ export const SCENARIOS: Record<Scenario, ScenarioSpec> = {
   viral_relampago: { label: "legitimo", count: 30, hours: [72, 168], hard: true },
   viral_subida_rapida: { label: "legitimo", count: 30, hours: [72, 168], hard: true },
   criador_pequeno_ruidoso: { label: "legitimo", count: 40, hours: [72, 168], hard: true },
+  ciclo_diario_forte: { label: "legitimo", count: 30, hours: [72, 168], hard: true },
   serie_curta_legitima: { label: "legitimo", count: 20, hours: [24, 47], hard: true },
   pico_comprado: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
   plato_mecanico: { label: "suspeito", count: 30, hours: [72, 168], hard: false },
@@ -228,14 +240,20 @@ export function generateSeries(scenario: Scenario, seed: number): number[] {
   return generators[scenario](rng, n);
 }
 
+/** FNV-1a de 32 bits: número estável a partir do nome do cenário. */
+function nameHash(name: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < name.length; i++) h = Math.imul(h ^ name.charCodeAt(i), 0x01000193);
+  return h >>> 0;
+}
+
 export function generateDataset(seed: number): Dataset {
   const samples: Sample[] = [];
-  const names = Object.keys(SCENARIOS) as Scenario[];
-  names.forEach((scenario, s) => {
+  for (const scenario of Object.keys(SCENARIOS) as Scenario[]) {
     const spec = SCENARIOS[scenario];
     for (let k = 0; k < spec.count; k++) {
-      // Semente por (cenário, k): mudar a quantidade de um cenário não altera as séries dos outros.
-      const seriesSeed = (Math.imul(seed, 0x9e3779b1) ^ Math.imul(s * 10_000 + k + 1, 0x85ebca6b)) >>> 0;
+      // Semente por (nome do cenário, k): incluir ou mudar um cenário não altera as séries dos outros.
+      const seriesSeed = (Math.imul(seed, 0x9e3779b1) ^ Math.imul(nameHash(scenario) + k + 1, 0x85ebca6b)) >>> 0;
       samples.push({
         id: `${scenario}-${String(k + 1).padStart(3, "0")}`,
         label: spec.label,
@@ -244,7 +262,7 @@ export function generateDataset(seed: number): Dataset {
         views: generateSeries(scenario, seriesSeed),
       });
     }
-  });
+  }
   return { seed, samples };
 }
 
