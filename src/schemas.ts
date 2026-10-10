@@ -89,10 +89,34 @@ export const classifyRequestSchema = z
             }
           }
         }),
+      mode: z
+        .enum(["incremental", "cumulative"], {
+          message: 'precisa ser "incremental" (views ganhas em cada hora) ou "cumulative" (total acumulado)',
+        })
+        .default("incremental"),
     },
     { message: "o corpo precisa ser um objeto JSON" },
   )
-  .strip();
+  .strip()
+  .superRefine((body, ctx) => {
+    if (body.mode !== "cumulative") return;
+    for (let i = 1; i < body.points.length; i++) {
+      if (body.points[i].views < body.points[i - 1].views) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["points", i, "views"],
+          message: `série acumulada não pode diminuir: veio ${body.points[i].views} depois de ${body.points[i - 1].views}`,
+        });
+        return;
+      }
+    }
+  })
+  // Daqui para frente só existe série incremental: o acumulado vira a diferença entre horas vizinhas.
+  .transform(({ post_id, published_at, mode, points }) => ({
+    post_id,
+    published_at,
+    views: points.map((p, i) => (mode === "cumulative" && i > 0 ? p.views - points[i - 1].views : p.views)),
+  }));
 
 export type ClassifyRequest = z.infer<typeof classifyRequestSchema>;
 

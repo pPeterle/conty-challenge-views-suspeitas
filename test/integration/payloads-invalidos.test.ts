@@ -69,6 +69,13 @@ const bodyCases: Array<[string, string, number, string]> = [
   ["views acima do teto", withPoint(2, { views: 1_000_000_001 }), 400, "VALIDATION_ERROR"],
   ["views acima do inteiro seguro", withPoint(2, { views: 2 ** 53 + 2 }), 400, "VALIDATION_ERROR"],
   ["views 1e308", withPoint(2, { views: 1e308 }), 400, "VALIDATION_ERROR"],
+  ["mode desconhecido", json({ mode: "total" }), 400, "VALIDATION_ERROR"],
+  [
+    "série acumulada que diminui",
+    json({ mode: "cumulative", points: points().map((p, i) => ({ hour: i, views: i === 10 ? 0 : 1000 + i })) }),
+    400,
+    "VALIDATION_ERROR",
+  ],
   ["views 1e999 (vira Infinity)", JSON.stringify(valid()).replace('"views":', '"views":1e999,"x":'), 400, "VALIDATION_ERROR"],
 ];
 

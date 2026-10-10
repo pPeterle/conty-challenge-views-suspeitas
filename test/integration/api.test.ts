@@ -214,3 +214,25 @@ describe("GET /criteria", () => {
     expect(not_detected.map((n: { title: string }) => n.title)).toEqual(docTitles);
   });
 });
+
+describe("modo acumulado", () => {
+  it("série acumulada vira incremental e recebe a mesma classificação e o mesmo id da incremental", async () => {
+    const views = withBoughtPeak(steady(96), 40, 5000);
+    let total = 0;
+    const cumulative = views.map((v) => (total += v));
+    const inc = await (await post(body(views))).json();
+    const cum = await (
+      await post({ ...body(cumulative), mode: "cumulative" })
+    ).json();
+    expect(cum.classification).toBe("suspeito");
+    expect(cum.id).toBe(inc.id);
+    expect(cum.summary).toEqual(inc.summary);
+    expect(listClassifications(db)).toHaveLength(1);
+  });
+
+  it("série acumulada que diminui é recusada com o ponto exato", async () => {
+    const res = await post({ ...body(steady(48).map((v, i) => 1000 + i - (i === 7 ? 50 : 0))), mode: "cumulative" });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error.message).toMatch(/points\[7\]\.views: série acumulada não pode diminuir/);
+  });
+});

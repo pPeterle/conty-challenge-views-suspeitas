@@ -91,8 +91,7 @@ export function createApp({ db, clock }: AppDeps): Hono {
     },
     validate("json", classifyRequestSchema),
     (c) => {
-      const { post_id, published_at, points } = c.req.valid("json");
-      const views = points.map((p) => p.views);
+      const { post_id, published_at, views } = c.req.valid("json");
 
       const now = clock.now();
       const lastHourStart = new Date(Date.parse(published_at) + (views.length - 1) * HOUR_MS);
