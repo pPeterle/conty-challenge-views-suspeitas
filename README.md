@@ -151,8 +151,9 @@ Os casos marcados "difícil" estão no dataset de propósito, para o número nã
 
 ### O que mudou nesta versão
 
-Uma comparação com classificadores e datasets de terceiros mostrou falso positivo perto de 16%, quase todo por
-`queda_abrupta` disparando sozinha em audiência real. Mudei quatro coisas:
+Testando com formatos de audiência real que o dataset ainda não tinha (live que termina, post que sai do
+destaque, viral que perde a recomendação), a versão anterior acusava demais, quase sempre por `queda_abrupta`
+disparando sozinha. Mudei quatro coisas:
 
 - queda abrupta isolada, com patamar de variação humana, passou a dar `inconclusivo`;
 - a queda só conta se passar de 5 desvios de Poisson do patamar, o que tira o ruído de conta pequena;
