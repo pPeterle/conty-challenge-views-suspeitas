@@ -13,7 +13,7 @@
 - `views` é **incremental**: quantas views o post ganhou naquela hora, não o acumulado.
 - `hour` conta a partir de 0 desde a publicação, em ordem, sem buraco e sem repetição. A posição no array é a
   hora.
-- `published_at` precisa ser data e hora ISO 8601 que exista no calendário, com fuso (`Z` ou `±hh:mm`). Volta
+- `published_at` precisa ser data e hora ISO 8601 que exista no calendário, com fuso (`Z` ou `±hh:mm`, de -14:00 a +14:00; `+14:30` e `-15:00` são recusados). Volta
   normalizado para UTC. Sem fuso, a hora 0 dependeria do fuso do servidor.
 - `post_id` é aparado nas pontas e aceita qualquer texto de 1 a 200 caracteres.
 - `mode` é opcional: `"incremental"` (padrão) ou `"cumulative"`, quando `views` é o total acumulado até

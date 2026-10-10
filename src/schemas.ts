@@ -29,7 +29,8 @@ export function parseIsoWithOffset(value: string): Date | null {
   if (m[8] === "Z") return check;
   const offsetH = Number(m[10]);
   const offsetM = Number(m[11]);
-  if (offsetH > 14 || offsetM > 59) return null;
+  // Fusos reais vão de -12:00 a +14:00; +14:30, +23:60 ou -15:00 não existem.
+  if (offsetM > 59 || offsetH * 60 + offsetM > 14 * 60) return null;
   const sign = m[9] === "+" ? 1 : -1;
   return new Date(local - sign * (offsetH * 60 + offsetM) * 60_000);
 }

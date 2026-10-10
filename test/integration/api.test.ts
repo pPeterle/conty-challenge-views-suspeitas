@@ -166,6 +166,16 @@ describe("validação da série", () => {
     const res = await post(body(steady(48), "p", "2026-10-08T13:00:00.000Z"));
     expect(res.status).toBe(200);
   });
+
+  it.each([
+    ["+14:00", "2026-09-30T10:00:00.000Z"],
+    ["-12:00", "2026-10-01T12:00:00.000Z"],
+    ["+05:45", "2026-09-30T18:15:00.000Z"],
+  ])("published_at com fuso %s existe e volta normalizado para UTC", async (offset, utc) => {
+    const res = await post(body(steady(48), "p", `2026-10-01T00:00:00${offset}`));
+    expect(res.status).toBe(200);
+    expect((await res.json()).published_at).toBe(utc);
+  });
 });
 
 describe("servidor HTTP real", () => {
