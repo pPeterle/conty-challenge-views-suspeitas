@@ -1,3 +1,4 @@
+import pino from "pino";
 import { beforeEach, describe, expect, it } from "vitest";
 import { MAX_BODY_BYTES, createApp } from "../../src/app.ts";
 import { FixedClock } from "../../src/clock.ts";
@@ -163,17 +164,19 @@ describe("rotas, métodos e erro interno", () => {
     expect((await res.json()).error.code).toBe("NOT_FOUND");
   });
 
-  it("erro inesperado vira 500 genérico, sem stack trace", async () => {
+  it("erro inesperado vira 500 genérico, sem stack trace, e o erro vai para o logger", async () => {
+    const lines: string[] = [];
+    const logged = createApp({
+      db,
+      clock: new FixedClock(NOW),
+      logger: pino({ level: "info" }, { write: (line: string) => void lines.push(line) }),
+    });
     db.close();
-    const original = console.error;
-    console.error = () => {};
-    try {
-      const res = await raw(JSON.stringify(valid()));
-      expect(res.status).toBe(500);
-      const body = await res.json();
-      expect(body).toEqual({ error: { code: "INTERNAL_ERROR", message: "Erro interno." } });
-    } finally {
-      console.error = original;
-    }
+    const res = await logged.request("/classify", { method: "POST", headers: JSON_CT, body: JSON.stringify(valid()) });
+    expect(res.status).toBe(500);
+    expect(await res.json()).toEqual({ error: { code: "INTERNAL_ERROR", message: "Erro interno." } });
+    expect(lines).toHaveLength(1);
+    expect(JSON.parse(lines[0]!)).toMatchObject({ level: 50, msg: "erro inesperado", method: "POST", path: "/classify", err: { type: "Error" } });
   });
+
 });

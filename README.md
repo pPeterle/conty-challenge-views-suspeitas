@@ -24,6 +24,8 @@ npm run evaluate     # mede na partição de avaliação, grava data/metrics.jso
 npm run load         # k6 via Docker na porta 3107 + verificação de determinismo
 ```
 
+Os logs saem em JSON pelo pino, com transporte em worker thread (`pino/file` no stdout), e `LOG_LEVEL` muda o nível (padrão `info`; nos testes o logger é silencioso).
+
 ## Contrato
 
 `POST /classify` recebe `{ post_id, published_at, points: [{ hour, views }] }`, com `views` **incremental**

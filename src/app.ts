@@ -10,11 +10,14 @@ import { criteriaDocument } from "./classifier/criteria.ts";
 import { CLASSIFIER_VERSION } from "./classifier/thresholds.ts";
 import type { Clock } from "./clock.ts";
 import { type Db, findClassification, saveClassification } from "./db.ts";
+import { silentLogger, type Logger } from "./logger.ts";
 import { classificationParamsSchema, classifyRequestSchema } from "./schemas.ts";
 
 export interface AppDeps {
   db: Db;
   clock: Clock;
+  /** Padrão: logger silencioso (testes). O servidor passa o de `createLogger`. */
+  logger?: Logger;
 }
 
 const HOUR_MS = 3_600_000;
@@ -70,7 +73,7 @@ function validate<T extends ZodSchema>(target: "json" | "param", schema: T) {
   });
 }
 
-export function createApp({ db, clock }: AppDeps): Hono {
+export function createApp({ db, clock, logger = silentLogger }: AppDeps): Hono {
   const app = new Hono();
 
   app.get("/health", (c) => c.json({ ok: true, classifier_version: CLASSIFIER_VERSION }));
@@ -140,13 +143,13 @@ export function createApp({ db, clock }: AppDeps): Hono {
   });
 
   app.notFound(() => errorResponse(404, "NOT_FOUND", "Rota não encontrada."));
-  app.onError((err) => {
+  app.onError((err, c) => {
     // JSON malformado chega aqui como HTTPException 400 do validador do Hono.
     if (err instanceof HTTPException && err.status === 400) {
       return errorResponse(400, "INVALID_JSON", "O corpo da requisição não é um JSON válido.");
     }
     // Detalhe só no log; o cliente recebe uma mensagem genérica, sem stack trace.
-    console.error(err);
+    logger.error({ err, method: c.req.method, path: c.req.path }, "erro inesperado");
     return errorResponse(500, "INTERNAL_ERROR", "Erro interno.");
   });
   return app;
