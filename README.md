@@ -272,20 +272,20 @@ classificarem a mesma série ao mesmo tempo produzem a mesma resposta, e o banco
 ## Teste de carga
 
 `npm run load` sobe a API na porta 3107 e roda dois cenários k6 por 30 segundos: 50 VUs reenviando as mesmas
-40 séries e 20 VUs mandando posts novos, com 10% de payloads inválidos de propósito (que precisam voltar 4xx no
+54 séries e 20 VUs mandando posts novos, com 10% de payloads inválidos de propósito (que precisam voltar 4xx no
 formato de erro). No fim, `scripts/verify-load.ts` lê o banco e falha se houver mais de uma linha por série
 repetida, algum payload inválido gravado ou resposta diferente da função pura. Resultado nesta máquina
 (macOS, k6 em Docker, 2026-10-10), detalhes em
 [docs/carga.md](docs/carga.md):
 
 ```
-✓ checks.........................: 100.00% 381902 out of 381902
-✓ { tipo:invalido }............: 100.00% 6440 out of 6440
-✓ { scenario:novas }...........: avg=18.79ms med=16.36ms p(90)=28.99ms p(95)=32.93ms
-✓ { scenario:repetidas }.......: avg=18.76ms med=16.41ms p(90)=29.22ms p(95)=33.06ms
-✓ http_req_failed................: 0.00%   0 out of 111314
-http_reqs......................: 111314  3708.235697/s
-verificação ok: 28497 classificações gravadas (40 séries repetidas, uma linha cada; 28457 posts novos, nenhum payload inválido), todas iguais à função pura, API devolvendo o mesmo texto
+✓ checks.........................: 100.00% 377994 out of 377994
+✓ { tipo:invalido }............: 100.00% 6114 out of 6114
+✓ { scenario:novas }...........: avg=19.28ms med=16.64ms p(90)=30.26ms p(95)=33.55ms
+✓ { scenario:repetidas }.......: avg=18.9ms  med=16.65ms p(90)=28.76ms p(95)=33.23ms
+✓ http_req_failed................: 0.00%   0 out of 109940
+http_reqs......................: 109940  3661.748007/s
+verificação ok: 27880 classificações gravadas (54 séries repetidas, uma linha cada; 27826 posts novos, nenhum payload inválido), todas iguais à função pura, API devolvendo o mesmo texto
 ```
 
 ## Onde cada exigência está
