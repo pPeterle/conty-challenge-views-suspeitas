@@ -16,6 +16,10 @@
 - `published_at` precisa ser data e hora ISO 8601 que exista no calendário, com fuso (`Z` ou `±hh:mm`). Volta
   normalizado para UTC. Sem fuso, a hora 0 dependeria do fuso do servidor.
 - `post_id` é aparado nas pontas e aceita qualquer texto de 1 a 200 caracteres.
+- `mode` é opcional: `"incremental"` (padrão) ou `"cumulative"`, quando `views` é o total acumulado até
+  aquela hora. No modo acumulado a série não pode diminuir, e a API converte para incremental (a hora 0 fica
+  com o próprio valor, as outras com a diferença para a anterior) antes de classificar. A mesma série nos dois
+  modos dá o mesmo `id`.
 - Campos extras são ignorados e não são gravados.
 
 Toda entrada passa por zod (`src/schemas.ts`), com um único ponto que converte o erro do zod no formato da
@@ -29,6 +33,13 @@ Resposta 200: `id` (sha256 da versão do critério, do post e da série), `post_
 
 Devolve uma classificação já feita, com o mesmo texto de `POST /classify`. `id` precisa ser um sha256 em
 hexadecimal (400 se não for, 404 se não existir).
+
+## `GET /criteria`
+
+Versão do critério, limiares calibrados, resultado da calibração, parâmetros fixos, regras e a lista do que o
+critério não detecta. Os limiares e parâmetros vêm dos mesmos objetos que o classificador usa
+(`src/classifier/thresholds.ts` e `thresholds.json`); a lista do que não detecta está em
+`src/classifier/criteria.ts`, e um teste confere que os itens são os mesmos de `docs/criterio.md`.
 
 ## `GET /health`
 
@@ -44,7 +55,7 @@ Formato: `{ "error": { "code", "message", "details"? } }`. `details` aparece nos
 | 400 | `INVALID_JSON` | corpo vazio ou que não é JSON (inclusive `NaN` literal) |
 | 400 | `SERIES_TOO_SHORT` | menos de 24 horas |
 | 400 | `SERIES_TOO_LONG` | mais de 2160 horas (90 dias) |
-| 400 | `VALIDATION_ERROR` | corpo que não é objeto, campo ausente ou de tipo errado, `post_id` vazio, `published_at` inválido ou sem fuso, hora repetida, faltando ou fora de ordem, views negativas, fracionárias ou acima de 1 bilhão, `id` malformado |
+| 400 | `VALIDATION_ERROR` | corpo que não é objeto, campo ausente ou de tipo errado, `post_id` vazio, `published_at` inválido ou sem fuso, hora repetida, faltando ou fora de ordem, views negativas, fracionárias ou acima de 1 bilhão, `mode` desconhecido, série acumulada que diminui, `id` malformado |
 | 413 | `PAYLOAD_TOO_LARGE` | corpo acima de 1 MB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | `Content-Type` ausente ou diferente de JSON |
 | 422 | `SERIES_IN_FUTURE` | `published_at` + horas da série passa do relógio do servidor |
@@ -84,7 +95,7 @@ curl -s -X POST localhost:3107/classify -H 'content-type: application/json' -d @
   "published_at": "2026-10-01T00:00:00.000Z",
   "classifier_version": "1.0.0",
   "classification": "suspeito",
-  "reason": "Suspeito: padrão que merece revisão humana. Na hora 40 o post teve 5.000 views, 50 vezes a linha de base de 100 views/h, num pico de 1 hora. Nas 10 horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo que estoura de verdade (abaixo de 30% é o formato de views entregues em lote).",
+  "reason": "Suspeito: padrão que merece revisão humana. Na hora 40 o post teve 5.000 views, 50 vezes a linha de base de 100 views/h, num pico de 1 hora. O pico chegou de uma hora para outra. Nas 10 horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo que estoura de verdade. Degrau de até 3 horas que some sem cauda (abaixo de 30%) é o formato de views entregues em lote.",
   "signals": [
     {
       "name": "pico_sem_cauda",
@@ -93,16 +104,16 @@ curl -s -X POST localhost:3107/classify -H 'content-type: application/json' -d @
       "fires_when": "below",
       "evaluated": true,
       "fired": true,
-      "detail": "Na hora 40 o post teve 5.000 views, 50 vezes a linha de base de 100 views/h, num pico de 1 hora. Nas 10 horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo que estoura de verdade (abaixo de 30% é o formato de views entregues em lote)."
+      "detail": "Na hora 40 o post teve 5.000 views, 50 vezes a linha de base de 100 views/h, num pico de 1 hora. O pico chegou de uma hora para outra. Nas 10 horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo que estoura de verdade. Degrau de até 3 horas que some sem cauda (abaixo de 30%) é o formato de views entregues em lote."
     },
     {
       "name": "queda_abrupta",
-      "value": 0.0861,
-      "threshold": 0.8,
+      "value": null,
+      "threshold": 0.9,
       "fires_when": "at_or_above",
-      "evaluated": true,
+      "evaluated": false,
       "fired": false,
-      "detail": "A maior queda sustentada de uma hora para outra foi de 9%, na hora 41 (dispara a partir de 80%)."
+      "detail": "Não avaliado: nenhum trecho ficou em 30 views/h ou mais por 6 horas e depois caiu mais de 5 desvios de Poisson; abaixo disso, o ruído normal de contagem já produz quedas grandes."
     },
     {
       "name": "repeticao_mecanica",
@@ -130,7 +141,7 @@ curl -s -X POST localhost:3107/classify -H 'content-type: application/json' -d @
     "peak_views": 5000,
     "peak_hour": 40
   },
-  "classified_at": "2026-10-10T04:09:41.141Z"
+  "classified_at": "2026-10-10T04:22:51.794Z"
 }
 ```
 
@@ -151,7 +162,7 @@ HTTP 400
 
 # pico-comprado.json com published_at 2026-10-09T00:00:00Z
 HTTP 422
-{"error":{"code":"SERIES_IN_FUTURE","message":"A série tem 96 horas a partir de 2026-10-09T00:00:00.000Z, então a última hora começaria em 2026-10-12T23:00:00.000Z, depois do horário atual (2026-10-10T04:09:41.326Z)."}}
+{"error":{"code":"SERIES_IN_FUTURE","message":"A série tem 96 horas a partir de 2026-10-09T00:00:00.000Z, então a última hora começaria em 2026-10-12T23:00:00.000Z, depois do horário atual (2026-10-10T04:22:51.871Z)."}}
 
 # sem Content-Type
 HTTP 415
@@ -159,4 +170,5 @@ HTTP 415
 ```
 
 Enviar `pico-comprado.json` de novo devolve o mesmo texto, byte a byte, e `GET /classifications/<id>`
-devolve 200 com o mesmo corpo.
+devolve 200 com o mesmo corpo. A mesma série convertida para acumulado e enviada com `"mode": "cumulative"`
+devolve o mesmo `id` (`22e72608...`) e `suspeito`.

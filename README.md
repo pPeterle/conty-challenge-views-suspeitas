@@ -28,27 +28,31 @@ npm run load         # k6 via Docker na porta 3107 + verificação de determinis
 
 `POST /classify` recebe `{ post_id, published_at, points: [{ hour, views }] }`, com `views` **incremental**
 (as views ganhas naquela hora, não o acumulado) e `hour` de 0 em diante, sem buraco nem repetição. Escolhi
-incremental porque todos os sinais olham a forma da curva hora a hora. A resposta traz `classification`,
-`reason`, `signals` (cada um com valor medido, limiar e se disparou) e um `id` para consultar depois em
-`GET /classifications/:id`.
+incremental porque todos os sinais olham a forma da curva hora a hora; quem tiver o acumulado pode mandar
+`"mode": "cumulative"`, e a API converte depois de checar que a série não diminui. A resposta traz
+`classification`, `reason`, `signals` (cada um com valor medido, limiar e se disparou) e um `id` para consultar
+depois em `GET /classifications/:id`. `GET /criteria` devolve a versão do critério, os limiares em uso e a
+lista do que ele não detecta.
 
-Validação e limites: todo corpo passa por zod. Série com menos de 24 ou mais de 2160 horas, hora repetida,
-faltando ou fora de ordem, views negativas, fracionárias ou acima de 1 bilhão e `published_at` sem fuso ou
-inexistente dão 400. Corpo acima de 1 MB dá 413, `Content-Type` que não é JSON dá 415 e série que termina no
+Validação e limites: todo corpo e parâmetro de rota passa por zod (`src/schemas.ts`). Série com menos de 24 ou
+mais de 2160 horas, hora repetida, faltando ou fora de ordem, views negativas, fracionárias ou acima de 1
+bilhão, série acumulada que diminui e `published_at` sem fuso ou inexistente dão 400. Corpo acima de 1 MB dá 413, `Content-Type` que não é JSON dá 415 e série que termina no
 futuro dá 422. Campos extras são ignorados. A tabela completa está em [docs/api.md](docs/api.md#erros).
 
 ## O critério em uma tela
 
 | sinal | o que mede | por que separa humano de robô |
 |---|---|---|
-| `pico_sem_cauda` | quanto das views extras do pico ainda aparece nas 10 horas depois dele | viral é compartilhado e decai aos poucos; lote comprado chega e para |
-| `queda_abrupta` | maior queda de uma hora para outra que se sustenta, depois de um patamar de pelo menos 30 views/h, sem contar a que se repete no mesmo horário do dia anterior ou seguinte | gente desacelera aos poucos; pacote de views acaba de uma vez |
+| `pico_sem_cauda` | quanto das views extras do pico ainda aparece nas 10 horas depois dele, num pico de até 3 horas que chega de uma hora para outra | viral é compartilhado e decai aos poucos; lote comprado chega num degrau e para |
+| `queda_abrupta` | maior queda de uma hora para outra que se sustenta, depois de um patamar de pelo menos 30 views/h e maior que 5 desvios de Poisson, sem contar a que se repete no mesmo horário do dia vizinho | pacote de views acaba de uma vez (mas live e destaque também, por isso sozinha não acusa) |
 | `repeticao_mecanica` | menor índice de dispersão (variância / média) em janelas de 12 horas | contagem de pessoas oscila pelo menos como uma Poisson; robô entrega 200, 201, 200 |
 | `rajadas_periodicas` | fração dos intervalos entre rajadas que são exatamente iguais | pessoas não chegam num relógio |
 
 As regras valem nesta ordem, e a primeira que bate decide:
 
-1. Algum sinal disparou: `suspeito`.
+1. Algum sinal disparou: `suspeito`. Exceção: se só `queda_abrupta` disparou e o patamar antes da queda
+   variava como gente, o resultado é `inconclusivo`. Live que termina, post que sai do destaque e viral
+   cortado têm esse mesmo formato. Com outro sinal junto, ou patamar regular demais, continua `suspeito`.
 2. Pico relevante com cauda curta demais para julgar, ou sem horas suficientes depois dele: `inconclusivo`.
 3. Mediana abaixo de 5 views/h e nenhuma hora com 100 views ou mais: `inconclusivo`.
 4. Série com menos de 48 horas: `inconclusivo`.
@@ -127,20 +131,39 @@ versionado e a tabela de limiares de `docs/criterio.md`.
 
 Os casos marcados "difícil" estão no dataset de propósito, para o número não sair bonito à toa.
 
-- `criador_pequeno_ruidoso` é a origem de todos os falsos positivos da avaliação. São contas com 3 a 40
-  views/h e ruído muito alto, sem correlação entre horas: uma hora de sorte sem nada depois parece
-  `pico_sem_cauda`, e algumas horas boas seguidas de uma fraca parecem `queda_abrupta`. Também é um dos
-  cenários com mais `inconclusivo`, pelo volume baixo.
-- `ciclo_diario_forte` (noite perto de zero) não gera falso positivo, porque a queda que se repete todo dia
-  no mesmo horário não conta. Às vezes fica `inconclusivo`: com a noite quase zerada, a mediana é baixa e o
-  pico do dia parece um pico isolado de cauda curta.
-- `serie_curta_legitima` é sempre `inconclusivo`: com menos de 48 horas e nenhum sinal, ele não afirma que é
-  legítimo. `serie_curta_comprada` às vezes também fica `inconclusivo`, porque o pico está perto do fim e não
-  dá para ver a cauda.
-- `compra_imitando_organico` e `compra_gradual` passam como `legitimo`. São views compradas com a forma de um
-  viral orgânico ou somadas aos poucos ao longo de dias. O critério olha só a forma da curva, e essa forma é
-  copiável.
-- `queda_abrupta` às vezes passa como `legitimo` quando o corte fica um pouco abaixo do limiar calibrado.
+- `live_fim_seco` é a maior fonte de falso positivo. Uma live de 2 ou 3 horas que começa e termina de uma
+  vez tem o formato exato de um lote comprado (degrau sem cauda). Distinguir exigiria saber que houve live,
+  e isso não está na série. Lives mais longas ficam `inconclusivo`.
+- `criador_pequeno_ruidoso` dá os outros falsos positivos: uma hora de sorte sem nada depois parece
+  `pico_sem_cauda`. A queda abrupta nessas contas quase nunca passa de 5 desvios de Poisson e nem é avaliada.
+- `viral_cortado`, `destaque_plataforma` e boa parte de `live_fim_seco` ficam `inconclusivo`: cauda curta ou
+  queda isolada, que é o formato que eles têm de verdade.
+- `queda_abrupta` (o cenário suspeito) agora fica quase sempre `inconclusivo`. O patamar artificial do dataset
+  tem ruído de gente, e uma queda assim sozinha não basta para acusar. É a perda de recall que aceitei para não
+  acusar live e destaque.
+- `ciclo_diario_forte` não gera falso positivo, porque a queda que se repete todo dia no mesmo horário não
+  conta. Às vezes fica `inconclusivo`: com a noite quase zerada, a mediana é baixa e o pico do dia parece
+  isolado.
+- `serie_curta_legitima` é sempre `inconclusivo` (menos de 48 horas); `serie_curta_comprada` às vezes também,
+  porque o pico está perto do fim e não dá para ver a cauda.
+- `compra_imitando_organico` e `compra_gradual` passam como `legitimo`. O critério olha só a forma da curva, e
+  essa forma é copiável.
+
+### O que mudou nesta versão
+
+Uma comparação com classificadores e datasets de terceiros mostrou falso positivo perto de 16%, quase todo por
+`queda_abrupta` disparando sozinha em audiência real. Mudei quatro coisas:
+
+- queda abrupta isolada, com patamar de variação humana, passou a dar `inconclusivo`;
+- a queda só conta se passar de 5 desvios de Poisson do patamar, o que tira o ruído de conta pequena;
+- queda que se repete no mesmo horário do dia vizinho deixou de contar (ciclo dia/noite forte);
+- `pico_sem_cauda` passou a exigir bloco de até 3 horas que chega de uma vez, o que tira viral cortado e
+  destaque.
+
+O dataset ganhou cinco famílias legítimas difíceis (`ciclo_diario_forte`, `live_fim_seco`,
+`destaque_plataforma`, `viral_cortado`, `degrau_permanente`), e os limiares foram recalibrados só na partição
+de calibração. O número acima é o novo, medido nesse dataset mais difícil. O recall caiu porque o cenário
+`queda_abrupta` deixou de ser acusado.
 
 ### Quando ele prefere não acusar
 
@@ -172,9 +195,10 @@ comprado, 4.900 views entram numa hora só. O teste
 | comprado | `suspeito` | 0,0033 | sim |
 
 O motivo real do comprado: "Suspeito: padrão que merece revisão humana. Na hora 40 o post teve 5.000 views,
-50 vezes a linha de base de 100 views/h, num pico de 1 hora. Nas 10 horas seguintes, juntas, vieram 0% das
-views extras da hora do pico: as views voltaram à base logo depois, sem a cauda de decaimento de um vídeo que
-estoura de verdade (abaixo de 30% é o formato de views entregues em lote)." A resposta completa, com os quatro
+50 vezes a linha de base de 100 views/h, num pico de 1 hora. O pico chegou de uma hora para outra. Nas 10
+horas seguintes, juntas, vieram 0% das views extras da hora do pico: as views voltaram à base logo depois, sem
+a cauda de decaimento de um vídeo que estoura de verdade. Degrau de até 3 horas que some sem cauda (abaixo de
+30%) é o formato de views entregues em lote." A resposta completa, com os quatro
 sinais, está em [docs/api.md](docs/api.md#exemplos-reais).
 
 ## Por que não um modelo treinado opaco (ou um LLM)
@@ -220,13 +244,20 @@ classificarem a mesma série ao mesmo tempo produzem a mesma resposta, e o banco
 ## Teste de carga
 
 `npm run load` sobe a API na porta 3107 e roda dois cenários k6 por 30 segundos: 50 VUs reenviando as mesmas
-30 séries e 20 VUs mandando posts novos, com 10% de payloads inválidos de propósito (que precisam voltar 4xx no
+40 séries e 20 VUs mandando posts novos, com 10% de payloads inválidos de propósito (que precisam voltar 4xx no
 formato de erro). No fim, `scripts/verify-load.ts` lê o banco e falha se houver mais de uma linha por série
 repetida, algum payload inválido gravado ou resposta diferente da função pura. Resultado nesta máquina
-(macOS, k6 em Docker), detalhes em [docs/carga.md](docs/carga.md):
+(macOS, k6 em Docker, dividida com outros processos durante a rodada), detalhes em
+[docs/carga.md](docs/carga.md):
 
 ```
-LOAD_SUMMARY
+✓ checks.........................: 100.00% 331556 out of 331556
+✓ { tipo:invalido }............: 100.00% 5524 out of 5524
+✓ { scenario:novas }...........: avg=21.26ms med=18.13ms p(90)=32.79ms p(95)=38.03ms
+✓ { scenario:repetidas }.......: avg=21.66ms med=18.27ms p(90)=33.79ms p(95)=38.73ms
+✓ http_req_failed................: 0.00%   0 out of 96866
+http_reqs......................: 96866   3226.712626/s
+verificação ok: 25232 classificações gravadas (40 séries repetidas, uma linha cada; 25192 posts novos, nenhum payload inválido), todas iguais à função pura, API devolvendo o mesmo texto
 ```
 
 ## Onde cada exigência está
@@ -242,6 +273,7 @@ LOAD_SUMMARY
 | pico orgânico x comprado | `pico orgânico plausível e pico comprado com a mesma altura caem em baldes diferentes` |
 | critério documentado, inclusive o que não detecta | [docs/criterio.md](docs/criterio.md) |
 | dataset reproduzível, sem rede social | PRNG mulberry32 próprio (`src/dataset/prng.ts`); `test/unit/dataset.test.ts` |
+| limiares e estabilidade | `test/unit/limiares.test.ts` (série logo abaixo e logo acima de cada limiar); estabilidade em 5 pares de sementes em `test/integration/readme-metrics.test.ts` |
 | payloads inválidos, idempotência e concorrência | `test/integration/payloads-invalidos.test.ts`, `test/integration/api.test.ts`, `npm run load` |
 
 ## O que ficou de fora e o que eu faria com mais tempo
