@@ -1,0 +1,165 @@
+import { describe, expect, it } from "vitest";
+import { classify } from "../../src/classifier/classify.ts";
+import type { SignalName } from "../../src/classifier/signals.ts";
+import { CALIBRATED, PARAMS } from "../../src/classifier/thresholds.ts";
+import { dailyCycle, steady, withBoughtPeak, withOrganicPeak } from "../series.ts";
+
+const signal = (result: ReturnType<typeof classify>, name: SignalName) => {
+  const s = result.signals.find((x) => x.name === name);
+  if (!s) throw new Error(`sinal ${name} ausente`);
+  return s;
+};
+
+describe("pico orgânico x pico comprado", () => {
+  const base = steady(96, 100);
+  const organic = withOrganicPeak(base, 40, 4900);
+  const bought = withBoughtPeak(base, 40, organic[40] - base[40]);
+
+  it("pico orgânico plausível e pico comprado com a mesma altura caem em baldes diferentes", () => {
+    expect(bought[40]).toBe(organic[40]);
+    expect(Math.max(...bought)).toBe(Math.max(...organic));
+
+    const organicResult = classify(organic);
+    const boughtResult = classify(bought);
+
+    expect(organicResult.classification).toBe("legitimo");
+    expect(boughtResult.classification).toBe("suspeito");
+
+    const organicTail = signal(organicResult, "pico_sem_cauda");
+    const boughtTail = signal(boughtResult, "pico_sem_cauda");
+    expect(organicTail.evaluated && boughtTail.evaluated).toBe(true);
+    expect(organicTail.fired).toBe(false);
+    expect(boughtTail.fired).toBe(true);
+    // A cauda do orgânico soma mais que o próprio pico; a do comprado é praticamente zero.
+    expect(organicTail.value!).toBeGreaterThan(1);
+    expect(boughtTail.value!).toBeLessThan(0.05);
+    expect(boughtResult.reason).toContain("hora 40");
+    expect(boughtResult.reason).toContain("voltaram à base");
+  });
+
+  it("um lote comprado de 3 horas seguidas também não tem cauda", () => {
+    const result = classify(withBoughtPeak(base, 40, 3000, 3));
+    expect(result.classification).toBe("suspeito");
+    expect(signal(result, "pico_sem_cauda").fired).toBe(true);
+  });
+});
+
+describe("prefere não acusar", () => {
+  it("pico enorme nas últimas horas da série fica inconclusivo: ainda não dá para ver a cauda", () => {
+    const series = withBoughtPeak(steady(72, 100), 69, 8000);
+    const result = classify(series);
+    expect(result.classification).toBe("inconclusivo");
+    expect(result.reason).toContain("prefiro não acusar");
+    expect(result.reason).toContain("só há 2 horas de série");
+    const peak = signal(result, "pico_sem_cauda");
+    expect(peak.evaluated).toBe(false);
+    expect(peak.fired).toBe(false);
+  });
+
+  it("a mesma série com 12 horas a mais, sem cauda, passa a ser suspeita", () => {
+    const series = withBoughtPeak(steady(84, 100), 69, 8000);
+    expect(classify(series).classification).toBe("suspeito");
+  });
+
+  it("viral que esfria rápido (cauda curta, zona cinza) fica inconclusivo em vez de suspeito", () => {
+    const series = withOrganicPeak(steady(96, 100), 40, 4900, 1, 0.7);
+    const result = classify(series);
+    const peak = signal(result, "pico_sem_cauda");
+    expect(peak.value!).toBeGreaterThanOrEqual(CALIBRATED.peak_tail);
+    expect(peak.value!).toBeLessThan(PARAMS.peak.tailGray);
+    expect(result.classification).toBe("inconclusivo");
+  });
+
+  it("criador com pouquíssimas views fica inconclusivo", () => {
+    const series = steady(96, 3);
+    const result = classify(series);
+    expect(result.classification).toBe("inconclusivo");
+    expect(result.reason).toContain("volume baixo");
+  });
+
+  it("série limpa de 30 horas é inconclusiva: cedo demais para afirmar que é legítima", () => {
+    const result = classify(steady(30, 100));
+    expect(result.classification).toBe("inconclusivo");
+    expect(result.reason).toContain("cedo");
+  });
+
+  it("série com menos de 24 horas não é examinada", () => {
+    const result = classify(steady(10, 100));
+    expect(result.classification).toBe("inconclusivo");
+    expect(result.signals).toEqual([]);
+  });
+});
+
+describe("casos óbvios", () => {
+  it("audiência com ciclo dia/noite é legítima", () => {
+    const result = classify(dailyCycle(168));
+    expect(result.classification).toBe("legitimo");
+    expect(result.signals.every((s) => !s.fired)).toBe(true);
+  });
+
+  it("patamar de exatamente 300 views por hora durante 48 horas é repetição mecânica", () => {
+    const series = steady(96, 20).map((v, t) => (t >= 24 && t < 72 ? 300 : v));
+    const result = classify(series);
+    expect(result.classification).toBe("suspeito");
+    const mech = signal(result, "repeticao_mecanica");
+    expect(mech.fired).toBe(true);
+    expect(mech.value).toBe(0);
+    expect(result.reason).toContain("quase sem variar");
+  });
+
+  it("patamar que despenca de uma hora para outra e não volta é queda abrupta", () => {
+    const series = steady(96, 40).map((v, t) => (t >= 20 && t < 60 ? v * 10 : v));
+    const result = classify(series);
+    expect(result.classification).toBe("suspeito");
+    const drop = signal(result, "queda_abrupta");
+    expect(drop.fired).toBe(true);
+    expect(result.reason).toContain("Na hora 60");
+  });
+
+  it("rajada de 800 views a cada 6 horas é periódica", () => {
+    const series = steady(96, 50).map((v, t) => (t % 6 === 2 ? v + 800 : v));
+    const result = classify(series);
+    expect(result.classification).toBe("suspeito");
+    const periodic = signal(result, "rajadas_periodicas");
+    expect(periodic.fired).toBe(true);
+    expect(periodic.value).toBe(1);
+    expect(result.reason).toContain("exatamente 6 horas");
+  });
+
+  it("decaimento natural depois da publicação é legítimo", () => {
+    const series = Array.from({ length: 120 }, (_, t) => Math.round(2000 * Math.exp(-t / 30) + 50 + ((t * 13) % 17)));
+    expect(classify(series).classification).toBe("legitimo");
+  });
+});
+
+describe("explicabilidade e determinismo", () => {
+  const cases = {
+    legitimo: dailyCycle(96),
+    suspeito: withBoughtPeak(steady(96), 40, 5000),
+    inconclusivo: withBoughtPeak(steady(72), 69, 8000),
+  };
+
+  it("todo sinal traz valor medido, limiar e se disparou", () => {
+    for (const series of Object.values(cases)) {
+      for (const s of classify(series).signals) {
+        expect(typeof s.threshold).toBe("number");
+        expect(typeof s.fired).toBe("boolean");
+        expect(s.value === null || typeof s.value === "number").toBe(true);
+        expect(s.detail.length).toBeGreaterThan(20);
+      }
+    }
+  });
+
+  it("o motivo é uma frase em português sem nomes internos do código", () => {
+    for (const [label, series] of Object.entries(cases)) {
+      const { classification, reason } = classify(series);
+      expect(classification).toBe(label);
+      expect(reason).not.toMatch(/[a-z]+_[a-z]+/);
+      expect(reason).not.toMatch(/\b(null|undefined|NaN|true|false)\b/);
+    }
+  });
+
+  it("mesma série, mesma resposta", () => {
+    for (const series of Object.values(cases)) expect(classify([...series])).toEqual(classify(series));
+  });
+});

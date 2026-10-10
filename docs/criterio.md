@@ -1,7 +1,9 @@
 # Critério de classificação
 
-Este documento é a especificação do classificador. Escrevi antes do código, e os limiares abaixo são os
-mesmos de `src/classifier/thresholds.ts`. Se um mudar, o outro muda junto.
+Este documento é a especificação do classificador. Escrevi a primeira versão antes do código. Os parâmetros
+fixos (janelas, mínimos de volume) estão em `src/classifier/thresholds.ts`. Os quatro limiares de disparo são
+escolhidos por `npm run calibrate` e gravados em `src/classifier/thresholds.json`; a tabela abaixo é gerada pelo
+mesmo comando, e um teste falha se ela divergir do arquivo.
 
 ## Entrada
 
@@ -25,6 +27,25 @@ inteiras, e mais de 2160 horas (90 dias). Recusa com 422 a série que termina de
 `x[t]` são as views da hora `t`, `n` é o número de horas, `base` é a mediana da série inteira. A mediana
 resiste a picos: um pico de 2 horas numa série de 100 horas não mexe nela.
 
+## Limiares calibrados
+
+Os valores usados na versão inicial, escolhidos à mão antes de existir calibração, eram 0,3 (cauda),
+0,75 (queda), 0,1 (dispersão) e 0,8 (periodicidade). A calibração os substituiu; a seção "Calibração" explica
+como.
+
+<!-- thresholds:start -->
+Gerado por `npm run calibrate` na partição de calibração (semente 1001). Regra: maximizar recall com falso positivo <= 2% na partição de calibração. 875 combinações testadas, 80 dentro da meta.
+
+| sinal | dispara quando o valor fica | limiar escolhido | candidatos |
+|---|---|---|---|
+| pico_sem_cauda | abaixo de | 0,1 | 0,1; 0,2; 0,3; 0,4; 0,5 |
+| queda_abrupta | igual ou acima de | 0,8 | 0,9; 0,85; 0,8; 0,75; 0,7; 0,65; 0,6 |
+| repeticao_mecanica | abaixo de | 0,05 | 0,05; 0,1; 0,2; 0,3; 0,5 |
+| rajadas_periodicas | igual ou acima de | 1 | 1; 0,9; 0,8; 0,7; 0,6 |
+
+Na calibração: falso positivo 1,61%, recall 74,44%.
+<!-- thresholds:end -->
+
 ## Sinais
 
 ### 1. `pico_sem_cauda`: pico isolado que volta à linha de base
@@ -41,8 +62,8 @@ compartilhado, entra em recomendação e continua recebendo views por muitas hor
    Um decaimento exponencial com meia-vida de 3 horas dá cerca de 2; um pico comprado dá perto de 0.
 5. Precisa haver 10 horas depois do bloco. Se o pico está no fim da série, a cauda não é observável.
 
-Dispara se `cauda < 0,3` **e** largura do bloco `<= 6` horas (bloco mais largo é patamar, não pico, e é
-assunto dos outros sinais). Entre 0,3 e 0,8 é zona cinza.
+Dispara se a cauda fica abaixo do limiar calibrado **e** a largura do bloco é de no máximo 6 horas (bloco
+mais largo é patamar, não pico, e é assunto dos outros sinais). Entre o limiar e 0,8 é zona cinza.
 
 ### 2. `queda_abrupta`: patamar que cai de uma hora para outra e não volta
 
@@ -56,7 +77,7 @@ Para cada hora `t` com pelo menos 6 horas antes e 3 depois:
 - Queda na hora: `1 - x[t] / x[t-1]`. Queda sustentada: `1 - depois / antes`.
 - Valor de `t`: o menor dos dois (as duas coisas precisam acontecer).
 
-O valor do sinal é o maior entre todos os `t` avaliados. Dispara se `>= 0,75`.
+O valor do sinal é o maior entre todos os `t` avaliados. Dispara se for igual ou maior que o limiar calibrado.
 
 O pico comprado curto não dispara este sinal: um bloco de até 3 horas não move a mediana de 6 horas
 anteriores. Isso mantém os sinais separados e o motivo mais preciso.
@@ -68,10 +89,10 @@ variância é igual à média. Na prática oscila mais. Um robô que entrega 200
 200, 199.
 
 Para cada janela de 12 horas consecutivas com média `>= 10` views/h, calcula o índice de dispersão
-`variância / média`. O valor do sinal é o menor índice encontrado. Dispara se `< 0,1`.
+`variância / média`. O valor do sinal é o menor índice encontrado. Dispara abaixo do limiar calibrado.
 
-Para uma Poisson pura com 12 amostras, um índice abaixo de 0,1 tem probabilidade da ordem de 1 em 100 mil por
-janela. Audiência real (com ciclo diário, tendência e ruído extra) fica bem acima de 1. Janelas com tendência
+Para uma Poisson pura com 12 amostras, pela aproximação qui-quadrado com 11 graus de liberdade, um índice
+abaixo de 0,1 tem probabilidade da ordem de 1 em 10 mil por janela, e abaixo de 0,05, de 2 em 1 milhão. Audiência real (com ciclo diário, tendência e ruído extra) fica bem acima de 1. Janelas com tendência
 inflam a variância, então o erro aqui tende a ser deixar passar, não acusar.
 
 ### 4. `rajadas_periodicas`: rajadas em intervalo fixo
@@ -83,7 +104,7 @@ Robô agendado entrega um lote a cada `k` horas.
 3. Com pelo menos 4 rajadas, calcula os intervalos entre inícios consecutivos e o intervalo mais comum `k`.
 4. Valor: fração dos intervalos exatamente iguais a `k`.
 
-Dispara se valor `>= 0,8` e `k` entre 2 e 12 horas. Periodicidade de 24 horas é ignorada de propósito:
+Dispara se o valor é igual ou maior que o limiar calibrado e `k` está entre 2 e 12 horas. Periodicidade de 24 horas é ignorada de propósito:
 é o ciclo dia/noite de gente de verdade.
 
 ## Como os sinais se combinam
@@ -92,7 +113,7 @@ Na ordem, a primeira regra que bate decide:
 
 1. Série com menos de 24 horas: `inconclusivo` (a API nem chega aqui, devolve 400).
 2. Algum sinal disparou: `suspeito`. O motivo junta a explicação de cada sinal que disparou.
-3. Pico relevante com cauda na zona cinza (0,3 a 0,8) ou não observável: `inconclusivo`.
+3. Pico relevante com cauda na zona cinza (entre o limiar calibrado e 0,8) ou não observável: `inconclusivo`.
 4. Volume baixo (mediana `< 5` views/h e máximo `< 100`): `inconclusivo`. Com tão poucas views, ruído e padrão
    ficam parecidos e nenhum sinal tem força.
 5. Série com menos de 48 horas: `inconclusivo`. Cedo demais para afirmar que é legítima.
@@ -101,6 +122,24 @@ Na ordem, a primeira regra que bate decide:
 Um sinal sozinho basta para `suspeito` porque cada limiar foi posto onde audiência humana quase nunca chega
 (ver acima). A escolha de exigir só um sinal aumenta o recall; o custo é que um falso disparo de qualquer
 sinal vira acusação. A taxa medida no dataset está no README.
+
+## Calibração
+
+O dataset tem duas partições geradas com sementes diferentes: `calibracao` e `avaliacao`.
+
+`npm run calibrate` olha **só a calibração**. Testa todas as combinações de uma grade pequena dos quatro
+limiares de disparo (os candidatos estão na tabela acima) e aplica uma regra explícita: maximizar o recall com
+taxa de falso positivo de no máximo 2% na calibração. Empate em recall fica com menos falsos positivos; empate
+nos dois fica com a combinação mais rígida (a que acusa menos), porque falso positivo custa mais caro que
+deixar passar. O resultado vai para `src/classifier/thresholds.json`, versionado. Não há dependência externa,
+rede nem nada aleatório: rodar de novo dá o mesmo arquivo, e um teste confere isso.
+
+`npm run evaluate` mede com esses limiares **só na avaliação**, que a calibração nunca viu. É esse o número do
+README. A diferença entre as duas partições aparece no README e mostra o quanto a calibração se ajustou ao
+próprio dado.
+
+Os parâmetros fixos (janelas de 6, 10 e 12 horas, mínimos de volume, zona cinza) não entram na grade. Eles
+definem o que é medido e foram escolhidos pelo raciocínio de cada sinal, não por busca.
 
 ## Quando prefere não acusar
 
@@ -118,11 +157,15 @@ observar. Há um teste para isso (`test/unit/classify.test.ts`) e um exemplo no 
 - **Patamar com ruído.** Um robô que adiciona variação aleatória na escala de uma Poisson escapa de
   `repeticao_mecanica`. O mesmo vale para patamar artificial somado a muita audiência real: a variância real
   mascara a constância do robô. Parte do platô mecânico do dataset escapa por isso.
-- **Rajadas com intervalo irregular** ou periódicas a cada 24 horas.
+- **Rajadas com intervalo irregular**, periódicas a cada 24 horas, ou tão frequentes (a cada 2 horas) que viram
+  a própria linha de base local. Com o limiar calibrado de periodicidade, basta um intervalo fora do padrão
+  para o sinal não disparar.
 - **Pico comprado no fim da série.** Cai em `inconclusivo` até haver horas suficientes depois.
 - **Mais de um pico.** Só o maior pico é examinado por `pico_sem_cauda`. Um pico comprado menor que um viral
   orgânico no mesmo post passa.
-- **Contas pequenas.** Abaixo de 5 views/h de mediana o resultado é `inconclusivo`.
+- **Contas pequenas.** Abaixo de 5 views/h de mediana o resultado é `inconclusivo`. Pior: criador pequeno com
+  ruído muito alto e sem correlação entre horas é a principal fonte de falso positivo no dataset. Uma hora
+  boa seguida de uma hora fraca parece `queda_abrupta`, e um pico casual sem cauda parece `pico_sem_cauda`.
 - **Causas legítimas de queda abrupta.** Post apagado, arquivado, tornado privado ou retirado de uma
   recomendação também derruba views de uma hora para outra. O sinal descreve o formato, não a intenção;
   `suspeito` quer dizer "merece revisão humana", não "fraude comprovada".
@@ -140,10 +183,20 @@ verdadeiro:
 | legítimo | `viral_organico` | linha base, decolagem em algumas horas, pico de 10 a 60 vezes a base, decaimento exponencial com meia-vida de 3 a 12 horas |
 | legítimo | `ciclo_diario` | audiência estável com ciclo dia/noite forte |
 | legítimo | `criador_pequeno` | poucas views por hora, ruído alto, pequenas ondas |
+| legítimo, difícil | `viral_relampago` | viral que sobe e esfria em 1 a 3 horas |
+| legítimo, difícil | `viral_subida_rapida` | viral que decola em menos de uma hora |
+| legítimo, difícil | `criador_pequeno_ruidoso` | 3 a 40 views/h com ruído muito alto e sem correlação entre horas |
+| legítimo, difícil | `serie_curta_legitima` | audiência normal, só 24 a 47 horas de série |
 | suspeito | `pico_comprado` | série orgânica mais um bloco de 1 a 3 horas de 10 a 60 vezes a base |
 | suspeito | `plato_mecanico` | patamar quase constante entregue por robô sobre pouca audiência real |
 | suspeito | `queda_abrupta` | patamar artificial (com ruído, não constante) que some de uma hora para outra |
 | suspeito | `bot_periodico` | rajadas de 1 hora a cada 3 a 8 horas |
+| suspeito, difícil | `serie_curta_comprada` | pico comprado numa série de 24 a 47 horas |
+| suspeito, difícil | `compra_imitando_organico` | lote comprado com a forma de um viral, sobre pouca audiência real |
+| suspeito, difícil | `compra_gradual` | views compradas somadas aos poucos ao longo de dias |
+
+Os casos difíceis existem para o número não sair bonito à toa. `compra_imitando_organico` e `compra_gradual`
+estão lá sabendo que o critério não os pega: o recall mostra esse limite em vez de escondê-lo.
 
 O ruído orgânico é Poisson com média multiplicada por um fator log-normal (superdispersão), que é como
 contagem de pessoas costuma se comportar. Os parâmetros de cada cenário estão em `src/dataset/generate.ts`.

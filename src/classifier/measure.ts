@@ -1,0 +1,102 @@
+import { mean, median, variance } from "./stats.ts";
+import { PARAMS } from "./thresholds.ts";
+
+/**
+ * Medidas da série que não dependem dos limiares de disparo. Calcular uma vez e decidir com vários limiares é
+ * o que deixa a calibração rápida, e garante que calibração e API usam exatamente a mesma decisão.
+ */
+export interface Measurements {
+  hours: number;
+  base: number;
+  peak:
+    | { status: "none"; hour: number; views: number }
+    | { status: "unobservable"; hour: number; views: number; ratio: number; width: number; hoursAfter: number }
+    | { status: "measured"; hour: number; views: number; ratio: number; width: number; tail: number };
+  drop: { hour: number; value: number; before: number; after: number; from: number; to: number } | null;
+  mechanical: { start: number; dispersion: number; mean: number; sample: number[] } | null;
+  periodic: { bursts: number; firstBurst: number; period: number | null; fraction: number | null };
+}
+
+function measurePeak(x: readonly number[], base: number): Measurements["peak"] {
+  const t = PARAMS.peak;
+  const safeBase = Math.max(base, 1);
+  let p = 0;
+  for (let i = 1; i < x.length; i++) if (x[i] > x[p]) p = i;
+  const excess = x[p] - base;
+  if (x[p] < t.minRatioToBase * safeBase || excess < t.minExcess) return { status: "none", hour: p, views: x[p] };
+
+  let lo = p;
+  let hi = p;
+  const blockMin = t.blockFraction * excess;
+  while (lo > 0 && x[lo - 1] - base >= blockMin) lo--;
+  while (hi < x.length - 1 && x[hi + 1] - base >= blockMin) hi++;
+  const common = { hour: p, views: x[p], ratio: x[p] / safeBase, width: hi - lo + 1 };
+  const hoursAfter = x.length - 1 - hi;
+  if (hoursAfter < t.tailHours) return { status: "unobservable", ...common, hoursAfter };
+
+  let tailSum = 0;
+  for (let i = hi + 1; i <= hi + t.tailHours; i++) tailSum += Math.max(0, x[i] - base);
+  return { status: "measured", ...common, tail: tailSum / excess };
+}
+
+function measureDrop(x: readonly number[]): Measurements["drop"] {
+  const t = PARAMS.drop;
+  let best: Measurements["drop"] = null;
+  for (let i = t.windowBefore; i + t.minAfterHours - 1 < x.length; i++) {
+    const before = median(x.slice(i - t.windowBefore, i));
+    if (before < t.minLevelBefore) continue;
+    const after = median(x.slice(i, Math.min(x.length, i + t.windowAfter)));
+    const hourDrop = x[i - 1] > 0 ? 1 - x[i] / x[i - 1] : 0;
+    // As duas coisas precisam acontecer: cair na hora e continuar baixo.
+    const value = Math.min(hourDrop, 1 - after / before);
+    if (best === null || value > best.value) best = { hour: i, value, before, after, from: x[i - 1], to: x[i] };
+  }
+  return best;
+}
+
+function measureMechanical(x: readonly number[]): Measurements["mechanical"] {
+  const t = PARAMS.mechanical;
+  let best: Measurements["mechanical"] = null;
+  for (let s = 0; s + t.window <= x.length; s++) {
+    const w = x.slice(s, s + t.window);
+    const m = mean(w);
+    if (m < t.minMean) continue;
+    const dispersion = variance(w) / m;
+    if (best === null || dispersion < best.dispersion) best = { start: s, dispersion, mean: m, sample: w.slice(0, 6) };
+  }
+  return best;
+}
+
+function measurePeriodic(x: readonly number[]): Measurements["periodic"] {
+  const t = PARAMS.periodic;
+  const starts: number[] = [];
+  let previousWasBurst = false;
+  for (let i = 0; i < x.length; i++) {
+    const local = median(x.slice(Math.max(0, i - t.localWindow), Math.min(x.length, i + t.localWindow + 1)));
+    const isBurst = x[i] >= t.burstRatio * Math.max(local, 1) && x[i] - local >= t.burstMinExcess;
+    if (isBurst && !previousWasBurst) starts.push(i);
+    previousWasBurst = isBurst;
+  }
+  if (starts.length < t.minBursts) return { bursts: starts.length, firstBurst: starts[0] ?? -1, period: null, fraction: null };
+  const intervals = starts.slice(1).map((s, k) => s - starts[k]);
+  const counts = new Map<number, number>();
+  for (const iv of intervals) counts.set(iv, (counts.get(iv) ?? 0) + 1);
+  let period = intervals[0];
+  for (const [iv, c] of counts) {
+    const current = counts.get(period) ?? 0;
+    if (c > current || (c === current && iv < period)) period = iv;
+  }
+  return { bursts: starts.length, firstBurst: starts[0], period, fraction: (counts.get(period) ?? 0) / intervals.length };
+}
+
+export function measure(x: readonly number[]): Measurements {
+  const base = median(x);
+  return {
+    hours: x.length,
+    base,
+    peak: measurePeak(x, base),
+    drop: measureDrop(x),
+    mechanical: measureMechanical(x),
+    periodic: measurePeriodic(x),
+  };
+}
