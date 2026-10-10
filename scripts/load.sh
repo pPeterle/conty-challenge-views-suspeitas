@@ -13,8 +13,8 @@ npx tsx scripts/load-fixtures.ts
 
 PORT="$PORT" DB_PATH="$DB_PATH" NODE_OPTIONS="--disable-warning=ExperimentalWarning" node --import tsx src/index.ts > "$TMP_DIR/server.log" 2>&1 &
 SERVER_PID=$!
-# Mata só o processo que este script subiu.
-trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+# Mata só o processo que este script subiu e apaga o banco desta rodada.
+trap 'kill "$SERVER_PID" 2>/dev/null || true; wait "$SERVER_PID" 2>/dev/null || true; rm -f "$DB_PATH" "$DB_PATH-shm" "$DB_PATH-wal"' EXIT
 
 for _ in $(seq 1 50); do
   if curl -fs "http://localhost:$PORT/health" > /dev/null; then break; fi
