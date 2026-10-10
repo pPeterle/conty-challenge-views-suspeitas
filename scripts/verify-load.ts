@@ -16,7 +16,9 @@ for (const row of rows) {
     if (JSON.stringify(stored[key]) !== JSON.stringify(fresh[key])) failures.push(`${row.post_id}: ${key} gravado difere da função pura`);
   }
 }
-const repeatedRows = rows.filter((r) => !r.post_id.startsWith("carga-"));
+const invalidRows = rows.filter((r) => r.post_id.startsWith("invalido-"));
+if (invalidRows.length > 0) failures.push(`${invalidRows.length} payloads inválidos foram gravados`);
+const repeatedRows = rows.filter((r) => !r.post_id.startsWith("carga-") && !r.post_id.startsWith("invalido-"));
 if (repeatedRows.length !== fixtures.length) {
   failures.push(`esperava ${fixtures.length} classificações das séries repetidas, achei ${repeatedRows.length}`);
 }
@@ -41,5 +43,6 @@ if (failures.length > 0) {
 }
 console.log(
   `verificação ok: ${rows.length} classificações gravadas (${fixtures.length} séries repetidas, uma linha cada; ` +
-    `${rows.length - repeatedRows.length} posts novos), todas iguais à função pura, API devolvendo o mesmo texto`,
+    `${rows.length - repeatedRows.length} posts novos, nenhum payload inválido), todas iguais à função pura, ` +
+    "API devolvendo o mesmo texto",
 );
