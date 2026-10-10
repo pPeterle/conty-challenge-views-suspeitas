@@ -1,5 +1,5 @@
 import type { Fired } from "./decide.ts";
-import { fmtDec, fmtInt, fmtPct, plural } from "./format.ts";
+import { fmtDec, fmtInt, fmtPct, fmtRatio, plural } from "./format.ts";
 import type { Measurements } from "./measure.ts";
 import { round4 } from "./stats.ts";
 import { type FiringThresholds, PARAMS } from "./thresholds.ts";
@@ -20,8 +20,22 @@ export interface Signal {
 
 /** Transforma as medidas em sinais com texto legível. Não decide nada: o `fired` vem de decide.ts. */
 export function buildSignals(m: Measurements, thr: FiringThresholds, fired: Fired): Signal[] {
-  return [peakSignal(m, thr, fired.pico_sem_cauda), dropSignal(m, thr, fired.queda_abrupta),
-    mechanicalSignal(m, thr, fired.repeticao_mecanica), periodicSignal(m, thr, fired.rajadas_periodicas)];
+  const signals = [
+    peakSignal(m, thr, fired.pico_sem_cauda),
+    dropSignal(m, thr, fired.queda_abrupta),
+    mechanicalSignal(m, thr, fired.repeticao_mecanica),
+    periodicSignal(m, thr, fired.rajadas_periodicas),
+  ];
+  // Ordem fixa dos campos no JSON, para a resposta ler de cima para baixo.
+  return signals.map((s) => ({
+    name: s.name,
+    value: s.value,
+    threshold: s.threshold,
+    fires_when: s.fires_when,
+    evaluated: s.evaluated,
+    fired: s.fired,
+    detail: s.detail,
+  }));
 }
 
 function peakSignal(m: Measurements, thr: FiringThresholds, fired: boolean): Signal {
@@ -40,7 +54,7 @@ function peakSignal(m: Measurements, thr: FiringThresholds, fired: boolean): Sig
     };
   }
   const peakText =
-    `Na hora ${pk.hour} o post teve ${fmtInt(pk.views)} views, ${fmtDec(pk.ratio)} vezes a linha de base de ` +
+    `Na hora ${pk.hour} o post teve ${fmtInt(pk.views)} views, ${fmtRatio(pk.ratio)} vezes a linha de base de ` +
     `${fmtInt(m.base)}/h, num pico de ${plural(pk.width, "hora", "horas")}.`;
   if (pk.status === "unobservable") {
     return {
