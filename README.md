@@ -287,9 +287,23 @@ uma frase plausível, mas não determinística, dependente de rede e de versão 
 deixaria de ser confiável. O "treino" aqui é a calibração descrita acima, uma busca em grade que roda em menos de um
 segundo e cujo resultado é um JSON pequeno e versionado.
 
-Se houvesse dados reais rotulados, o próximo passo natural seria uma árvore de decisão rasa sobre estes mesmos
-sinais. Ela continua legível (cada folha é uma regra como as de hoje) e aprenderia combinações que escolhi à
-mão, como exigir dois sinais em contas pequenas.
+### Por que não Python com pandas e scikit-learn
+
+Considerei fazer a análise em Python, com pandas e scikit-learn, e entregar só o modelo treinado. Desisti por
+quatro motivos:
+
+1. Com dataset sintético, o modelo aprenderia as regras do meu gerador. A métrica subiria sem que ele ficasse
+   melhor em séries reais.
+2. O enunciado pede motivo legível e critério documentado. Um modelo serializado não diz por que acusou um
+   criador.
+3. O teste que compara o README com o medido passaria a depender de dois runtimes e das versões das
+   bibliotecas.
+4. Os outros desafios usam Node e Hono, e quis manter a mesma stack.
+
+Com dados reais rotulados, eu treinaria uma árvore de decisão rasa em Python, offline, sobre estes mesmos
+sinais, e exportaria as regras como JSON para o classificador Node ler, como ele já lê `thresholds.json`.
+Cada folha vira uma regra com limiar e motivo, então a resposta continua explicável. A árvore poderia
+aprender combinações que hoje escolhi à mão, como exigir dois sinais em contas pequenas.
 
 ## Persistência, idempotência e concorrência
 
@@ -378,7 +392,7 @@ Thresholds: p95 abaixo de 200 ms em cada cenário, menos de 1% de erro, checks a
 O código, os testes, o critério e este README foram produzidos com Claude Code (Claude Opus) a partir do
 enunciado do desafio. Os números de métricas e de carga saíram de execuções reais dos comandos descritos aqui.
 
-**O que eu revisei** (rascunho, para eu confirmar): revisei o critério em `docs/criterio.md` e as regras de
+**O que eu revisei:** revisei o critério em `docs/criterio.md` e as regras de
 combinação, conferi os casos de teste de pico orgânico x comprado e de "prefere não acusar", rodei
 `npm test`, `npm run evaluate` e `npm run load` localmente e conferi que os exemplos do README batem com as
 respostas da API.
