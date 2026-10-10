@@ -29,8 +29,10 @@ reprova a rodada de verdade são os checks, a taxa de erro e a verificação no 
 
 ## Resultado
 
-Nesta máquina (macOS, k6 em Docker), em 2026-10-10, com load average entre 3 e 5 medido com `uptime` antes e
-depois da rodada. Em rodadas anteriores, com a máquina dividida com outros processos pesados, o p95 chegou a passar de
+Nesta máquina (macOS, k6 em Docker), em 2026-10-10, com load average entre 4 e 6 medido com `uptime` antes e
+depois da rodada, já com o log em pino. Uma rodada logo antes, com o mesmo código mas ainda com `console`, deu
+3311 req/s e p95 de 37 ms: a troca não mudou a vazão, porque a API só registra a subida, o encerramento e erros
+inesperados. Em rodadas anteriores, com a máquina dividida com outros processos pesados, o p95 chegou a passar de
 200 ms sem nenhum erro nem resposta errada; o caminho da requisição medido isoladamente leva menos de 1 ms.
 
 ```
@@ -40,12 +42,12 @@ depois da rodada. Em rodadas anteriores, com a máquina dividida com outros proc
      ✓ mesma série, mesma resposta
      ✓ inválido: status 4xx esperado
      ✓ inválido: erro no formato padrão
-   ✓ checks.........................: 100.00% 377994 out of 377994
-     ✓ { tipo:invalido }............: 100.00% 6114 out of 6114
-     http_req_duration..............: avg=19.01ms min=3.68ms med=16.65ms max=747.54ms p(90)=29.33ms p(95)=33.32ms
-     ✓ { scenario:novas }...........: avg=19.28ms min=3.68ms med=16.64ms max=747.54ms p(90)=30.26ms p(95)=33.55ms
-     ✓ { scenario:repetidas }.......: avg=18.9ms  min=3.98ms med=16.65ms max=729.24ms p(90)=28.76ms p(95)=33.23ms
-   ✓ http_req_failed................: 0.00%   0 out of 109940
-     http_reqs......................: 109940  3661.748007/s
-verificação ok: 27880 classificações gravadas (54 séries repetidas, uma linha cada; 27826 posts novos, nenhum payload inválido), todas iguais à função pura, API devolvendo o mesmo texto
+   ✓ checks.........................: 100.00% 346814 out of 346814
+     ✓ { tipo:invalido }............: 100.00% 5768 out of 5768
+     http_req_duration..............: avg=20.64ms min=9.34ms med=17.83ms max=867.46ms p(90)=32.41ms p(95)=36.37ms
+     ✓ { scenario:novas }...........: avg=20.49ms min=9.34ms med=17.79ms max=846.44ms p(90)=32.07ms p(95)=36.23ms
+     ✓ { scenario:repetidas }.......: avg=20.71ms min=9.47ms med=17.85ms max=867.46ms p(90)=32.53ms p(95)=36.44ms
+   ✓ http_req_failed................: 0.00%   0 out of 101237
+     http_reqs......................: 101237  3372.045604/s
+verificação ok: 26237 classificações gravadas (54 séries repetidas, uma linha cada; 26183 posts novos, nenhum payload inválido), todas iguais à função pura, API devolvendo o mesmo texto
 ```

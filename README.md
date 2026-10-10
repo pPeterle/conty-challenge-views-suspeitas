@@ -281,13 +281,13 @@ repetida, algum payload inválido gravado ou resposta diferente da função pura
 [docs/carga.md](docs/carga.md):
 
 ```
-✓ checks.........................: 100.00% 377994 out of 377994
-✓ { tipo:invalido }............: 100.00% 6114 out of 6114
-✓ { scenario:novas }...........: avg=19.28ms med=16.64ms p(90)=30.26ms p(95)=33.55ms
-✓ { scenario:repetidas }.......: avg=18.9ms  med=16.65ms p(90)=28.76ms p(95)=33.23ms
-✓ http_req_failed................: 0.00%   0 out of 109940
-http_reqs......................: 109940  3661.748007/s
-verificação ok: 27880 classificações gravadas (54 séries repetidas, uma linha cada; 27826 posts novos, nenhum payload inválido), todas iguais à função pura, API devolvendo o mesmo texto
+✓ checks.........................: 100.00% 346814 out of 346814
+✓ { tipo:invalido }............: 100.00% 5768 out of 5768
+✓ { scenario:novas }...........: avg=20.49ms med=17.79ms p(90)=32.07ms p(95)=36.23ms
+✓ { scenario:repetidas }.......: avg=20.71ms med=17.85ms p(90)=32.53ms p(95)=36.44ms
+✓ http_req_failed................: 0.00%   0 out of 101237
+http_reqs......................: 101237  3372.045604/s
+verificação ok: 26237 classificações gravadas (54 séries repetidas, uma linha cada; 26183 posts novos, nenhum payload inválido), todas iguais à função pura, API devolvendo o mesmo texto
 ```
 
 ## Onde cada exigência está
